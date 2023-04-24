@@ -1,0 +1,24 @@
+{% extends "template.html" %}
+{% block content %}
+
+<!-- Show an error message saying that this url does not exist with bootstrap -->
+<div class="container align-items-center">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    {% if id %}
+                        <h1>404</h1>
+                        <h3>Page not found</h3>
+                        <p>There is no QR code with the id {{ id }}</p>
+                    {% else %}
+                        <h1>404</h1>
+                        <h3>Page not found</h3>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

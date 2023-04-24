@@ -1,0 +1,36 @@
+{% extends "template.html" %}
+{% block content %}
+
+<!-- a simple form that just has a url input and a submit button -->
+<!-- centered with boostrap -->
+<div class="container align-items-center" id="main-form">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <form action="/" method="post" onload="data => {console.log(data)}" onerror="data => {console.log(data)}">
+                        <div class="mb-3">
+                            <label for="url" class="form-label">URL</label>
+                            {% if error %}
+                                <input type="text" class="form-control is-invalid" id="url" name="url" aria-describedby="urlHelp" value="{{ url }}" required>
+                                <div class="invalid-feedback">
+                                    {{ error }}
+                                </div>
+                            {% else %}
+                            	<input type="text" class="form-control" id="url" name="url" aria-describedby="urlHelp" required>
+                            {% endif %}
+                            <div id="urlHelp" class="form-text">Required - This will be the url that the QR code links to</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="key" class="form-label">Key</label>
+                            <input type="text" class="form-control" id="key" name="key" aria-describedby="keyHelp">
+                            <div id="keyHelp" class="form-text">Optional - This will produce a link that ends with /&#60;key&#62;</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Get QR code</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "template.html" %}
+{% block content %}
+
+<!-- show the QR code stats, i.e. the url it points to and the counter using bootstrap-->
+<div class="container align-items-center" id="main-form">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h2>QR code stats</h2>
+                    <p>QR code points to: <a href="//{{ url }}">{{ url }}</a></p>
+                    <p>QR code has been scanned {{ counter }} times</p>
+                    <div id="qrcode"></div>
+                    <script type="text/javascript">
+                        let currentUrl = window.location.href;
+                        // remove the "/stats" from the url
+                        let url = currentUrl.substring(0, currentUrl.length - 6);
+                        let qrcode = new QrcodeMin(document.getElementById("qrcode"), {
+                            text: url,
+                            width: 256,
+                            height: 256,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QrcodeMin.CorrectLevel.H
+                        });
+                    </script>
+                    <!-- button to home page -->
+                    <div class="text-center" id="back-home">
+                        <button type="button" class="btn btn-primary" onclick="window.location.href='/'">Make another QR code</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

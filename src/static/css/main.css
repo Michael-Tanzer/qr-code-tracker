@@ -1,0 +1,12 @@
+#main-form {
+  margin-top: 50px;
+}
+
+#back-home {
+  margin-top: 50px;
+}
+
+#qrcode > img{
+  margin-right: auto;
+  margin-left: auto;
+}
