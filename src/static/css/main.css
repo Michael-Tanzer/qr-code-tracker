@@ -2,6 +2,14 @@
   margin-top: 50px;
 }
 
+@media screen and (max-width: 1024px) {
+  #main-form {
+    padding-left: 0;
+    padding-right: 0;
+    max-width: none;
+  }
+}
+
 #back-home {
   margin-top: 50px;
 }
@@ -9,4 +17,10 @@
 #qrcode > img{
   margin-right: auto;
   margin-left: auto;
+  height: 256px;
+  width: 256px;
+}
+
+#plot {
+  margin-top: 50px;
 }

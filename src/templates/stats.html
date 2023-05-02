@@ -9,7 +9,11 @@
                 <div class="card-body">
                     <h2>QR code stats</h2>
                     <p>QR code points to: <a href="//{{ url }}">{{ url }}</a></p>
-                    <p>QR code has been scanned {{ counter }} times</p>
+                    {% if date %}
+                        <p>QR code has been scanned {{ counter }} time at {{ date }}</p>
+                    {% else %}
+                       <p>QR code has been scanned {{ counter }} times</p>
+                    {% endif %}
                     <div id="qrcode"></div>
                     <script type="text/javascript">
                         let currentUrl = window.location.href;
@@ -17,13 +21,20 @@
                         let url = currentUrl.substring(0, currentUrl.length - 6);
                         let qrcode = new QrcodeMin(document.getElementById("qrcode"), {
                             text: url,
-                            width: 256,
-                            height: 256,
+                            width: 1024,
+                            height: 1024,
                             colorDark : "#000000",
                             colorLight : "#ffffff",
                             correctLevel : QrcodeMin.CorrectLevel.H
                         });
                     </script>
+
+                    {% if plot_url %}
+                    <div class="text-center" id="plot">
+                        <output> <img src="data:image/png;base64, {{ plot_url }}" width="1000" height="500" alt="graph"> </output>
+                    </div>
+                    {% endif %}
+
                     <!-- button to home page -->
                     <div class="text-center" id="back-home">
                         <button type="button" class="btn btn-primary" onclick="window.location.href='/'">Make another QR code</button>

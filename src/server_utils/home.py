@@ -1,10 +1,18 @@
+import base64
+import io
 import logging
 import random
 import string
+from datetime import datetime
+from urllib.parse import quote
 
-from flask import Blueprint, render_template, redirect, request, jsonify, url_for
+from flask import Blueprint, render_template, redirect, request, url_for
+from matplotlib import ticker
+from werkzeug import Response
 
-from src.server_utils.db import Association, Stats
+import matplotlib.pyplot as plt
+
+from src.server_utils.db import Association, Stats, Impression
 from src.server_utils.shared import db
 
 home_pages = Blueprint('home',
@@ -19,7 +27,7 @@ def index() -> str:
 
 
 @home_pages.route("/qr/<id>", methods=["GET"])
-def get(id: str) -> str:
+def get(id: str) -> str | Response:
     association = Association.query.filter_by(key=id).first()
 
     if association is None:
@@ -27,7 +35,8 @@ def get(id: str) -> str:
 
     stats = Stats.query.filter_by(key=id).first()
     url = association.url
-    stats.count += 1
+    new_impression = Impression(datetime.now())
+    stats.impressions.append(new_impression)
     db.session.commit()
 
     if url.find("http://") != 0 and url.find("https://") != 0:
@@ -41,12 +50,53 @@ def stats(id: str) -> str:
     association = Association.query.filter_by(key=id).first()
     stats = Stats.query.filter_by(key=id).first()
     url = association.url
-    counter = stats.count
-    return render_template("stats.html", url=url, counter=counter)
+    counter = len(stats.impressions)
+
+    datetimes = [impression.datetime for impression in stats.impressions]
+    datetimes.sort()
+
+    if counter == 0:
+        return render_template("stats.html", url=url, counter=counter, plot_url=None)
+    elif counter == 1:
+        return render_template("stats.html", url=url, counter=counter, plot_url=None, date=datetimes[0])
+
+    img = io.BytesIO()
+    plt.figure(figsize=(10, 5))
+    plt.step(datetimes + [datetimes[-1]], range(len(datetimes) + 1))
+    plt.xlabel("Time")
+    plt.ylabel("Impressions")
+    plt.title("Impressions over time")
+
+    # set x axis to be formatted as dates
+    ticks = [datetimes[0], datetimes[-1]]
+
+    if counter > 2:
+        max_ticks = 11
+        # add to the "ticks" list until we have enough ticks, take the ticks evenly spaced from the list
+        available_ticks = datetimes[1:-1]
+        distance_between_ticks = len(available_ticks) / (max_ticks - 2)
+        for i in range(1, max_ticks - 2):
+            new_tick = available_ticks[int(i * distance_between_ticks)]
+            if new_tick not in ticks:
+                ticks.append(available_ticks[int(i * distance_between_ticks)])
+        ticks.sort()
+
+    plt.xticks(ticks, rotation=45)
+    # set y axis to be formatted as integers
+    plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
+    plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(img, format='png', dpi=400)
+    plt.close()
+    img.seek(0)
+    plot_url = quote(base64.b64encode(img.read()).decode())
+
+    return render_template("stats.html", url=url, counter=counter, plot_url=plot_url)
 
 
 @home_pages.route("/", methods=["POST"])
-def generate() -> str:
+def generate() -> str | Response:
     url = request.form["url"]
     key = request.form.get("key", None)
 
@@ -65,6 +115,7 @@ def generate() -> str:
 
     association = Association(key, url)
     stats = Stats(key, 0)
+    association.stats = stats
 
     db.session.add(association)
     db.session.add(stats)
