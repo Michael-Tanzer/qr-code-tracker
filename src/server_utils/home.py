@@ -54,6 +54,13 @@ def stats(id: str) -> str:
     datetimes = [impression.datetime for impression in stats.impressions]
     datetimes.sort()
 
+    # get random mock datetimes for testing using random numbers
+    # datetimes = [datetime.fromtimestamp(random.normalvariate(40000000 + 1600000000, 10000000)) for _ in range(500)]
+    # datetimes += [datetime.fromtimestamp(random.normalvariate(40000000 + 1500000000, 10000000)) for _ in range(100)]
+    # datetimes += [datetime.fromtimestamp(random.normalvariate(40000000 + 1400000000, 10000000)) for _ in range(200)]
+    # datetimes.sort()
+    # counter = len(datetimes)
+
     if counter == 0:
         return render_template("stats.html", url=url, counter=counter, plot_url=None)
     elif counter == 1:

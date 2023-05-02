@@ -2,6 +2,8 @@
 
 QR Code Views Tracker is a simple web tool that allows you to generate a QR code that routes to an intermediary website where views are recorded and plotted over time.
 
+![preview.png](preview.png)
+
 ## Setup
 
 ### Dependencies
