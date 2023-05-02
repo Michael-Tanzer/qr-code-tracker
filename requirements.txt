@@ -1,0 +1,6 @@
+Flask==2.3.2
+Flask_Migrate==4.0.4
+flask_sqlalchemy==3.0.3
+matplotlib==3.7.1
+SQLAlchemy==2.0.12
+waitress==2.1.2

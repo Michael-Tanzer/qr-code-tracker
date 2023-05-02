@@ -6,9 +6,8 @@ import string
 from datetime import datetime
 from urllib.parse import quote
 
-from flask import Blueprint, render_template, redirect, request, url_for
+from flask import Blueprint, render_template, redirect, request, url_for, Response
 from matplotlib import ticker
-from werkzeug import Response
 
 import matplotlib.pyplot as plt
 
