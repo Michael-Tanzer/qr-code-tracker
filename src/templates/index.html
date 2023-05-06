@@ -10,7 +10,7 @@
                 <div class="card-body">
                     <form action="/" method="post" onload="data => {console.log(data)}" onerror="data => {console.log(data)}">
                         <div class="mb-3">
-                            <label for="url" class="form-label">URL</label>
+                            <label for="url" class="form-label">URL<i style="color: red">*</i></label>
                             {% if error %}
                                 <input type="text" class="form-control is-invalid" id="url" name="url" aria-describedby="urlHelp" value="{{ url }}" required>
                                 <div class="invalid-feedback">
@@ -26,6 +26,11 @@
                             <input type="text" class="form-control" id="key" name="key" aria-describedby="keyHelp">
                             <div id="keyHelp" class="form-text">Optional - This will produce a link that ends with /&#60;key&#62;</div>
                         </div>
+<!--                        <div class="mb-3">-->
+<!--                            <label for="password" class="form-label">Password</label>-->
+<!--                            <input type="text" class="form-control" id="password" name="password" aria-describedby="passwordHelp">-->
+<!--                            <div id="passwordHelp" class="form-text">Optional - The password will be required to view the QR code stats</div>-->
+<!--                        </div>-->
                         <button type="submit" class="btn btn-primary">Get QR code</button>
                     </form>
                 </div>

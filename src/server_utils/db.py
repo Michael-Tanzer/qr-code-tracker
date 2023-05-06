@@ -16,7 +16,7 @@ class Association(db.Model):
     __tablename__ = "associations"
     id = db.Column("id", db.Integer, primary_key=True)
 
-    key: str = db.Column(db.String(100))
+    key: str = db.Column(db.String(1000))
     url: str = db.Column(db.String(1000))
 
     stats: Mapped["Stats"] = relationship(back_populates="association")
@@ -31,15 +31,17 @@ class Stats(db.Model):
     __tablename__ = "stats"
     id = db.Column("id", db.Integer, primary_key=True)
 
-    key: str = db.Column(db.String(100))
+    key: str = db.Column(db.String(1000))
+    password: str = db.Column(db.String(1000))
     impressions: Mapped[List["Impression"]] = relationship()
 
     association_id: Mapped[int] = mapped_column(ForeignKey("associations.id"))
     association: Mapped["Association"] = relationship(back_populates="stats")
 
-    def __init__(self, key: str, count: int) -> None:
+    def __init__(self, key: str, count: int = 0, password: str = None) -> None:
         self.key = key
         self.count = count
+        self.password = password
 
 
 class Impression(db.Model):

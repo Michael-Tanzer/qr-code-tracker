@@ -4,6 +4,7 @@ import logging
 import random
 import string
 from datetime import datetime
+from typing import Union
 from urllib.parse import quote
 
 from flask import Blueprint, render_template, redirect, request, url_for, Response
@@ -26,7 +27,7 @@ def index() -> str:
 
 
 @home_pages.route("/qr/<id>", methods=["GET"])
-def get(id: str) -> str | Response:
+def get(id: str) -> Union[str, Response]:
     association = Association.query.filter_by(key=id).first()
 
     if association is None:
@@ -102,7 +103,7 @@ def stats(id: str) -> str:
 
 
 @home_pages.route("/", methods=["POST"])
-def generate() -> str | Response:
+def generate() -> Union[str, Response]:
     url = request.form["url"]
     key = request.form.get("key", None)
 
