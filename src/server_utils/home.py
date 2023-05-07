@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, render_template, redirect, request, url_for, Response
 from matplotlib import ticker
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import matplotlib.pyplot as plt
 
@@ -45,10 +46,21 @@ def get(id: str) -> Union[str, Response]:
     return redirect(url)
 
 
-@home_pages.route("/qr/<id>/stats", methods=["GET"])
+@home_pages.route("/qr/<id>/stats", methods=["GET", "POST"])
 def stats(id: str) -> str:
     association = Association.query.filter_by(key=id).first()
     stats = Stats.query.filter_by(key=id).first()
+
+    if stats is None:
+        return render_template("error.html", id=id)
+
+    has_password = stats.password is not None
+    received_password = request.form.get("password", None)
+    if has_password and received_password is None:
+        return render_template("password.html", id=id)
+    elif has_password and not check_password_hash(stats.password, received_password):
+        return render_template("generic_error.html", error_message="Incorrect password! Refresh the page to try again.")  # TODO: add error message
+
     url = association.url
     counter = len(stats.impressions)
 
@@ -106,6 +118,7 @@ def stats(id: str) -> str:
 def generate() -> Union[str, Response]:
     url = request.form["url"]
     key = request.form.get("key", None)
+    password = request.form.get("password", None)
 
     if key is None:
         # generate a unique key
@@ -121,7 +134,7 @@ def generate() -> Union[str, Response]:
             return render_template("index.html", error="Key already exists.", url=url)
 
     association = Association(key, url)
-    stats = Stats(key, 0)
+    stats = Stats(key, 0, generate_password_hash(password) if password is not None else None)
     association.stats = stats
 
     db.session.add(association)

@@ -2,11 +2,31 @@
   margin-top: 50px;
 }
 
+#password-card {
+  margin-top: 50px;
+}
+
+#error-card {
+  margin-top: 50px;
+}
+
 @media screen and (max-width: 1024px) {
   #main-form {
     padding-left: 0;
     padding-right: 0;
     max-width: none;
+  }
+
+  #main-password {
+    padding-left: 0;
+    padding-right: 0;
+    max-width: none;
+  }
+
+  #main-error {
+      padding-left: 0;
+      padding-right: 0;
+      max-width: none;
   }
 }
 
