@@ -1,20 +1,19 @@
-import base64
-import io
+import json
 import logging
 import random
 import string
 from datetime import datetime
 from typing import Union
-from urllib.parse import quote
 
-from flask import Blueprint, render_template, redirect, request, url_for, Response
-from matplotlib import ticker
+from flask import Blueprint, jsonify, render_template, redirect, request, url_for, Response
 from werkzeug.security import check_password_hash, generate_password_hash
 
-import matplotlib.pyplot as plt
-
+from src.server_utils.config import get_config
 from src.server_utils.db import Association, Stats, Impression
 from src.server_utils.shared import db
+
+config = get_config()
+key_config = config["key_generation"]
 
 home_pages = Blueprint('home',
                        __name__,
@@ -24,21 +23,46 @@ home_pages = Blueprint('home',
 
 @home_pages.route("/", methods=["GET"])
 def index() -> str:
-    return render_template("index.html")
+    """
+    Render the main page with QR code generation form.
+    
+    Returns:
+        str: Rendered HTML template
+    """
+    qr_config = config.get("qr_code", {})
+    return render_template("index.html", qr_config=qr_config)
 
 
 @home_pages.route("/qr/<id>", methods=["GET"])
 def get(id: str) -> Union[str, Response]:
+    """
+    Handle QR code redirect and record impression.
+    
+    Args:
+        id: QR code key identifier
+        
+    Returns:
+        Union[str, Response]: Error page if not found, redirect to target URL otherwise
+    """
     association = Association.query.filter_by(key=id).first()
 
     if association is None:
         return render_template("error.html", id=id)
 
     stats = Stats.query.filter_by(key=id).first()
+    
+    if stats is None:
+        logging.error(f"Stats not found for key: {id}")
+        return render_template("error.html", id=id)
+    
     url = association.url
     new_impression = Impression(datetime.now())
+    new_impression.stats_id = stats.id
     stats.impressions.append(new_impression)
+    db.session.add(new_impression)
     db.session.commit()
+    
+    logging.info(f"Recorded impression for key {id}, stats_id: {stats.id}, impression stats_id: {new_impression.stats_id}")
 
     if url.find("http://") != 0 and url.find("https://") != 0:
         url = "https://" + url
@@ -48,6 +72,15 @@ def get(id: str) -> Union[str, Response]:
 
 @home_pages.route("/qr/<id>/stats", methods=["GET", "POST"])
 def stats(id: str) -> str:
+    """
+    Display statistics page for a QR code.
+    
+    Args:
+        id: QR code key identifier
+        
+    Returns:
+        str: Rendered HTML template with statistics
+    """
     association = Association.query.filter_by(key=id).first()
     stats = Stats.query.filter_by(key=id).first()
 
@@ -59,7 +92,7 @@ def stats(id: str) -> str:
     if has_password and received_password is None:
         return render_template("password.html", id=id)
     elif has_password and not check_password_hash(stats.password, received_password):
-        return render_template("generic_error.html", error_message="Incorrect password! Refresh the page to try again.")  # TODO: add error message
+        return render_template("generic_error.html", error_message="Incorrect password! Refresh the page to try again.")
 
     url = association.url
     counter = len(stats.impressions)
@@ -67,74 +100,177 @@ def stats(id: str) -> str:
     datetimes = [impression.datetime for impression in stats.impressions]
     datetimes.sort()
 
-    # get random mock datetimes for testing using random numbers
-    # datetimes = [datetime.fromtimestamp(random.normalvariate(40000000 + 1600000000, 10000000)) for _ in range(500)]
-    # datetimes += [datetime.fromtimestamp(random.normalvariate(40000000 + 1500000000, 10000000)) for _ in range(100)]
-    # datetimes += [datetime.fromtimestamp(random.normalvariate(40000000 + 1400000000, 10000000)) for _ in range(200)]
-    # datetimes.sort()
-    # counter = len(datetimes)
+    # Merge stored QR style config with config.toml defaults
+    default_qr_config = config.get("qr_code", {})
+    stored_qr_config = association.get_qr_style_config()
+    
+    if stored_qr_config:
+        # Start with defaults and override with stored values
+        qr_config = default_qr_config.copy()
+        qr_config.update(stored_qr_config)
+    else:
+        # Use defaults only
+        qr_config = default_qr_config
 
     if counter == 0:
-        return render_template("stats.html", url=url, counter=counter, plot_url=None)
+        return render_template("stats.html", url=url, counter=counter, has_data=False, id=id, qr_config=qr_config)
     elif counter == 1:
-        return render_template("stats.html", url=url, counter=counter, plot_url=None, date=datetimes[0])
+        return render_template("stats.html", url=url, counter=counter, has_data=False, date=datetimes[0], id=id, qr_config=qr_config)
 
-    img = io.BytesIO()
-    plt.figure(figsize=(10, 5))
-    plt.step(datetimes + [datetimes[-1]], range(len(datetimes) + 1))
-    plt.xlabel("Time")
-    plt.ylabel("Impressions")
-    plt.title("Impressions over time")
+    return render_template("stats.html", url=url, counter=counter, has_data=True, id=id, qr_config=qr_config)
 
-    # set x axis to be formatted as dates
-    ticks = [datetimes[0], datetimes[-1]]
 
-    if counter > 2:
-        max_ticks = 11
-        # add to the "ticks" list until we have enough ticks, take the ticks evenly spaced from the list
-        available_ticks = datetimes[1:-1]
-        distance_between_ticks = len(available_ticks) / (max_ticks - 2)
-        for i in range(1, max_ticks - 2):
-            new_tick = available_ticks[int(i * distance_between_ticks)]
-            if new_tick not in ticks:
-                ticks.append(available_ticks[int(i * distance_between_ticks)])
-        ticks.sort()
+@home_pages.route("/qr/<id>/stats/data", methods=["GET"])
+def stats_data(id: str) -> Response:
+    """
+    API endpoint returning impression data as JSON.
+    
+    Args:
+        id: QR code key identifier
+        
+    Returns:
+        Response: JSON response with impression datetimes and count
+    """
+    stats = Stats.query.filter_by(key=id).first()
 
-    plt.xticks(ticks, rotation=45)
-    # set y axis to be formatted as integers
-    plt.gca().yaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
-    plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    plt.grid()
-    plt.tight_layout()
-    plt.savefig(img, format='png', dpi=400)
-    plt.close()
-    img.seek(0)
-    plot_url = quote(base64.b64encode(img.read()).decode())
+    if stats is None:
+        return jsonify({"error": "Stats not found"}), 404
 
-    return render_template("stats.html", url=url, counter=counter, plot_url=plot_url)
+    datetimes = [impression.datetime.isoformat() for impression in stats.impressions]
+    datetimes.sort()
+
+    return jsonify({
+        "datetimes": datetimes,
+        "count": len(datetimes)
+    })
 
 
 @home_pages.route("/", methods=["POST"])
 def generate() -> Union[str, Response]:
+    """
+    Generate a new QR code association.
+    
+    Returns:
+        Union[str, Response]: Error page if key exists, redirect to stats page otherwise
+    """
     url = request.form["url"]
-    key = request.form.get("key", None)
+    key = request.form.get("key", "").strip()
     password = request.form.get("password", None)
 
-    if key is None:
-        # generate a unique key
+    if not key:
         already_exists = True
-        while already_exists:
-            valid_characters = string.ascii_lowercase + string.digits + string.ascii_uppercase
-            key = "".join(random.choice(valid_characters) for i in range(10))
+        valid_chars = key_config["valid_characters"]
+        char_set = ""
+        if "ascii_lowercase" in valid_chars:
+            char_set += string.ascii_lowercase
+        if "digits" in valid_chars:
+            char_set += string.digits
+        if "ascii_uppercase" in valid_chars:
+            char_set += string.ascii_uppercase
+        key_length = key_config["length"]
+        attempts = 0
+        max_attempts = 100
+        while already_exists and attempts < max_attempts:
+            key = "".join(random.choice(char_set) for i in range(key_length))
             already_exists = Association.query.filter_by(key=key).first() is not None
+            attempts += 1
+        
+        if attempts >= max_attempts:
+            logging.error("Failed to generate unique key after maximum attempts")
+            qr_config = config.get("qr_code", {})
+            return render_template("index.html", error="Failed to generate unique key. Please try again.", url=url, qr_config=qr_config)
     else:
-        # check if key already exists
         already_exists = Association.query.filter_by(key=key).first() is not None
         if already_exists:
-            return render_template("index.html", error="Key already exists.", url=url)
+            qr_config = config.get("qr_code", {})
+            return render_template("index.html", error="Key already exists.", url=url, qr_config=qr_config)
 
-    association = Association(key, url)
-    stats = Stats(key, 0, generate_password_hash(password) if password is not None else None)
+    # Extract QR styling options from form
+    qr_style_config = {}
+    default_qr_config = config.get("qr_code", {})
+    
+    # Basic options
+    if request.form.get("qr_style_width"):
+        try:
+            qr_style_config["width"] = int(request.form.get("qr_style_width"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_height"):
+        try:
+            qr_style_config["height"] = int(request.form.get("qr_style_height"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_color_dark"):
+        qr_style_config["color_dark"] = request.form.get("qr_style_color_dark")
+    
+    if request.form.get("qr_style_color_light"):
+        qr_style_config["color_light"] = request.form.get("qr_style_color_light")
+    
+    if request.form.get("qr_style_dot_type"):
+        qr_style_config["dot_type"] = request.form.get("qr_style_dot_type")
+    
+    if request.form.get("qr_style_margin"):
+        try:
+            qr_style_config["margin"] = int(request.form.get("qr_style_margin"))
+        except ValueError:
+            pass
+    
+    # Advanced options
+    if request.form.get("qr_style_corner_square_type"):
+        qr_style_config["corner_square_type"] = request.form.get("qr_style_corner_square_type")
+    
+    if request.form.get("qr_style_corner_dot_type"):
+        qr_style_config["corner_dot_type"] = request.form.get("qr_style_corner_dot_type")
+    
+    if request.form.get("qr_style_logo_image", "").strip():
+        qr_style_config["logo_image"] = request.form.get("qr_style_logo_image").strip()
+    
+    if request.form.get("qr_style_logo_size"):
+        try:
+            qr_style_config["logo_size"] = float(request.form.get("qr_style_logo_size"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_logo_margin"):
+        try:
+            qr_style_config["logo_margin"] = int(request.form.get("qr_style_logo_margin"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_gradient_type", "").strip():
+        qr_style_config["gradient_type"] = request.form.get("qr_style_gradient_type").strip()
+        if request.form.get("qr_style_gradient_color_start", "").strip():
+            qr_style_config["gradient_color_start"] = request.form.get("qr_style_gradient_color_start").strip()
+        if request.form.get("qr_style_gradient_color_end", "").strip():
+            qr_style_config["gradient_color_end"] = request.form.get("qr_style_gradient_color_end").strip()
+        if request.form.get("qr_style_gradient_rotation"):
+            try:
+                qr_style_config["gradient_rotation"] = int(request.form.get("qr_style_gradient_rotation"))
+            except ValueError:
+                pass
+    
+    if request.form.get("qr_style_background_gradient_type", "").strip():
+        qr_style_config["background_gradient_type"] = request.form.get("qr_style_background_gradient_type").strip()
+        if request.form.get("qr_style_background_gradient_color_start", "").strip():
+            qr_style_config["background_gradient_color_start"] = request.form.get("qr_style_background_gradient_color_start").strip()
+        if request.form.get("qr_style_background_gradient_color_end", "").strip():
+            qr_style_config["background_gradient_color_end"] = request.form.get("qr_style_background_gradient_color_end").strip()
+        if request.form.get("qr_style_background_gradient_rotation"):
+            try:
+                qr_style_config["background_gradient_rotation"] = int(request.form.get("qr_style_background_gradient_rotation"))
+            except ValueError:
+                pass
+    
+    if request.form.get("qr_style_correct_level"):
+        qr_style_config["correct_level"] = request.form.get("qr_style_correct_level")
+
+    # Only store non-empty config
+    qr_style_config_to_store = qr_style_config if qr_style_config else None
+
+    association = Association(key, url, qr_style_config_to_store)
+    stats = Stats(key, generate_password_hash(password) if password is not None else None)
     association.stats = stats
 
     db.session.add(association)
@@ -142,5 +278,7 @@ def generate() -> Union[str, Response]:
     db.session.commit()
 
     logging.info(f"Generated key {key} for url {url}.")
-
-    return redirect(url_for("home.stats", id=key))
+    
+    stats_url = url_for("home.stats", id=key)
+    logging.info(f"Redirecting to: {stats_url}")
+    return redirect(stats_url)

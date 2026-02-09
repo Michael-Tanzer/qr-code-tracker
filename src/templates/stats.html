@@ -8,31 +8,353 @@
             <div class="card">
                 <div class="card-body">
                     <h2>QR code stats</h2>
-                    <p>QR code points to: <a href="//{{ url }}">{{ url }}</a></p>
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>QR code URL:</strong></p>
+                        <p class="mb-2">
+                            <code id="qrCodeUrl" style="background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; display: inline-block; word-break: break-all;"></code>
+                        </p>
+                        <p class="mb-1"><strong>Points to:</strong></p>
+                        <p class="mb-3">
+                            <a href="//{{ url }}" target="_blank">{{ url }}</a>
+                        </p>
+                    </div>
                     {% if date %}
-                        <p>QR code has been scanned {{ counter }} time at {{ date }}</p>
+                        <p class="mb-3">QR code has been scanned <strong>{{ counter }}</strong> time at {{ date }}</p>
                     {% else %}
-                       <p>QR code has been scanned {{ counter }} times</p>
+                       <p class="mb-3">QR code has been scanned <strong>{{ counter }}</strong> times</p>
                     {% endif %}
-                    <div id="qrcode"></div>
+                    <div class="d-flex justify-content-center mb-3">
+                        <div id="qrcode"></div>
+                    </div>
                     <script type="text/javascript">
-                        let currentUrl = window.location.href;
-                        // remove the "/stats" from the url
-                        let url = currentUrl.substring(0, currentUrl.length - 6);
-                        let qrcode = new QrcodeMin(document.getElementById("qrcode"), {
-                            text: url,
-                            width: 1024,
-                            height: 1024,
-                            colorDark : "#000000",
-                            colorLight : "#ffffff",
-                            correctLevel : QrcodeMin.CorrectLevel.H
-                        });
+                        function generateQRCode() {
+                            // Check if QRCodeStyling is available
+                            if (typeof QRCodeStyling === 'undefined') {
+                                console.error('QRCodeStyling library not loaded');
+                                const qrElement = document.getElementById('qrcode');
+                                if (qrElement) {
+                                    qrElement.innerHTML = '<p class="text-danger">Error: QR code library not loaded. Please refresh the page.</p><p class="text-muted">Check browser console for details.</p>';
+                                }
+                                return;
+                            }
+                            
+                            try {
+                                let currentUrl = window.location.href;
+                                // remove the "/stats" from the url
+                                let qrCodeUrl = currentUrl.substring(0, currentUrl.length - 6);
+                                document.getElementById('qrCodeUrl').textContent = qrCodeUrl;
+                                
+                                // Build QR code configuration from server config
+                                const qrConfig = {{ qr_config | tojson }};
+                                
+                                // Map error correction level
+                                const errorCorrectionMap = {
+                                    "L": "L",
+                                    "M": "M",
+                                    "Q": "Q",
+                                    "H": "H"
+                                };
+                                const errorCorrectionLevel = errorCorrectionMap[qrConfig.correct_level || "H"] || "H";
+                                
+                                // Build dots configuration
+                                const dotsOptions = {
+                                    type: qrConfig.dot_type || "square",
+                                    color: qrConfig.color_dark || "#000000"
+                                };
+                                
+                                // Add gradient if configured
+                                if (qrConfig.gradient_type && qrConfig.gradient_color_start && qrConfig.gradient_color_end) {
+                                    dotsOptions.gradient = {
+                                        type: qrConfig.gradient_type,
+                                        rotation: qrConfig.gradient_rotation || 0,
+                                        colorStops: [
+                                            { offset: 0, color: qrConfig.gradient_color_start },
+                                            { offset: 1, color: qrConfig.gradient_color_end }
+                                        ]
+                                    };
+                                }
+                                
+                                // Build corners configuration
+                                const cornersSquareOptions = {
+                                    type: qrConfig.corner_square_type || "square",
+                                    color: qrConfig.color_dark || "#000000"
+                                };
+                                
+                                const cornersDotOptions = {
+                                    type: qrConfig.corner_dot_type || "square",
+                                    color: qrConfig.color_dark || "#000000"
+                                };
+                                
+                                // Add gradient to corners if configured (for dots gradient)
+                                if (qrConfig.gradient_type && qrConfig.gradient_color_start && qrConfig.gradient_color_end) {
+                                    cornersSquareOptions.gradient = {
+                                        type: qrConfig.gradient_type,
+                                        rotation: qrConfig.gradient_rotation || 0,
+                                        colorStops: [
+                                            { offset: 0, color: qrConfig.gradient_color_start },
+                                            { offset: 1, color: qrConfig.gradient_color_end }
+                                        ]
+                                    };
+                                    cornersDotOptions.gradient = {
+                                        type: qrConfig.gradient_type,
+                                        rotation: qrConfig.gradient_rotation || 0,
+                                        colorStops: [
+                                            { offset: 0, color: qrConfig.gradient_color_start },
+                                            { offset: 1, color: qrConfig.gradient_color_end }
+                                        ]
+                                    };
+                                }
+                                
+                                // Build background configuration
+                                const backgroundOptions = {
+                                    color: qrConfig.color_light || "#ffffff"
+                                };
+                                
+                                // Add background gradient if configured
+                                if (qrConfig.background_gradient_type && qrConfig.background_gradient_color_start && qrConfig.background_gradient_color_end) {
+                                    backgroundOptions.gradient = {
+                                        type: qrConfig.background_gradient_type,
+                                        rotation: qrConfig.background_gradient_rotation || 0,
+                                        colorStops: [
+                                            { offset: 0, color: qrConfig.background_gradient_color_start },
+                                            { offset: 1, color: qrConfig.background_gradient_color_end }
+                                        ]
+                                    };
+                                }
+                                
+                                // Build QR code configuration object
+                                const qrCodeConfig = {
+                                    width: qrConfig.width || 512,
+                                    height: qrConfig.height || 512,
+                                    type: "canvas",
+                                    data: qrCodeUrl,
+                                    margin: qrConfig.margin || 4,
+                                    qrOptions: {
+                                        typeNumber: 0,
+                                        mode: "Byte",
+                                        errorCorrectionLevel: errorCorrectionLevel
+                                    },
+                                    dotsOptions: dotsOptions,
+                                    cornersSquareOptions: cornersSquareOptions,
+                                    cornersDotOptions: cornersDotOptions,
+                                    backgroundOptions: backgroundOptions
+                                };
+                                
+                                // Add image/logo configuration only if logo is provided
+                                if (qrConfig.logo_image && typeof qrConfig.logo_image === 'string' && qrConfig.logo_image.trim() !== "") {
+                                    qrCodeConfig.imageOptions = {
+                                        image: qrConfig.logo_image,
+                                        margin: qrConfig.logo_margin || 3,
+                                        imageSize: qrConfig.logo_size || 0.3,
+                                        hideBackgroundDots: true,
+                                        crossOrigin: "anonymous"
+                                    };
+                                }
+                                
+                                // Create QR code with styling
+                                const qrCode = new QRCodeStyling(qrCodeConfig);
+                                
+                                const qrElement = document.getElementById("qrcode");
+                                if (qrElement) {
+                                    qrCode.append(qrElement);
+                                } else {
+                                    console.error('QR code container element not found');
+                                }
+                            } catch (error) {
+                                console.error('Error generating QR code:', error);
+                                const qrElement = document.getElementById("qrcode");
+                                if (qrElement) {
+                                    qrElement.innerHTML = '<p class="text-danger">Error generating QR code. Please check the browser console.</p>';
+                                }
+                            }
+                        }
+                        
+                        // Wait for DOM and library to be ready
+                        function waitForLibrary(attempts) {
+                            attempts = attempts || 0;
+                            if (attempts > 50) {
+                                console.error('QRCodeStyling library failed to load after 5 seconds');
+                                const qrElement = document.getElementById('qrcode');
+                                if (qrElement) {
+                                    qrElement.innerHTML = '<p class="text-danger">Error: QR code library failed to load. Please refresh the page.</p>';
+                                }
+                                return;
+                            }
+                            
+                            if (typeof QRCodeStyling !== 'undefined') {
+                                generateQRCode();
+                            } else {
+                                // Try again after a short delay
+                                setTimeout(function() { waitForLibrary(attempts + 1); }, 100);
+                            }
+                        }
+                        
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', function() {
+                                waitForLibrary();
+                            });
+                        } else {
+                            waitForLibrary();
+                        }
                     </script>
 
-                    {% if plot_url %}
-                    <div class="text-center" id="plot">
-                        <output> <img src="data:image/png;base64, {{ plot_url }}" width="1000" height="500" alt="graph"> </output>
+                    {% if has_data %}
+                    <div class="mt-4 mb-4">
+                        <div class="d-flex justify-content-center">
+                            <div style="max-width: 100%; width: 100%; height: 400px; position: relative;">
+                                <canvas id="impressionsChart"></canvas>
+                            </div>
+                        </div>
                     </div>
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+                    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+                    <script type="text/javascript">
+                        fetch('{{ url_for("home.stats_data", id=id) }}')
+                            .then(response => response.json())
+                            .then(data => {
+                                const datetimes = data.datetimes.map(d => new Date(d));
+                                const chartData = datetimes.map((dt, idx) => ({
+                                    x: dt,
+                                    y: idx + 1
+                                }));
+                                
+                                const ctx = document.getElementById('impressionsChart').getContext('2d');
+                                new Chart(ctx, {
+                                    type: 'line',
+                                    data: {
+                                        datasets: [{
+                                            label: 'Impressions',
+                                            data: chartData,
+                                            borderColor: '#0d6efd',
+                                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                            borderWidth: 2,
+                                            stepped: 'after',
+                                            pointRadius: 0,
+                                            fill: true,
+                                            tension: 0
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        layout: {
+                                            padding: {
+                                                top: 10,
+                                                bottom: 10,
+                                                left: 10,
+                                                right: 10
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                type: 'time',
+                                                time: {
+                                                    displayFormats: {
+                                                        minute: 'HH:mm',
+                                                        hour: 'MMM d, HH:mm',
+                                                        day: 'MMM d, yyyy',
+                                                        week: 'MMM d',
+                                                        month: 'MMM yyyy'
+                                                    },
+                                                    tooltipFormat: 'MMM d, yyyy HH:mm'
+                                                },
+                                                title: {
+                                                    display: true,
+                                                    text: 'Time',
+                                                    font: {
+                                                        size: 14,
+                                                        weight: 'bold'
+                                                    },
+                                                    color: '#495057'
+                                                },
+                                                grid: {
+                                                    color: 'rgba(0, 0, 0, 0.1)',
+                                                    drawBorder: true,
+                                                    borderColor: 'rgba(0, 0, 0, 0.2)'
+                                                },
+                                                ticks: {
+                                                    maxRotation: 45,
+                                                    minRotation: 45,
+                                                    color: '#6c757d',
+                                                    font: {
+                                                        size: 11
+                                                    }
+                                                }
+                                            },
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    stepSize: 1,
+                                                    precision: 0,
+                                                    color: '#6c757d',
+                                                    font: {
+                                                        size: 11
+                                                    }
+                                                },
+                                                title: {
+                                                    display: true,
+                                                    text: 'Impressions',
+                                                    font: {
+                                                        size: 14,
+                                                        weight: 'bold'
+                                                    },
+                                                    color: '#495057'
+                                                },
+                                                grid: {
+                                                    color: 'rgba(0, 0, 0, 0.1)',
+                                                    drawBorder: true,
+                                                    borderColor: 'rgba(0, 0, 0, 0.2)'
+                                                }
+                                            }
+                                        },
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'Impressions over time',
+                                                font: {
+                                                    size: 18,
+                                                    weight: 'bold'
+                                                },
+                                                color: '#212529',
+                                                padding: {
+                                                    top: 10,
+                                                    bottom: 20
+                                                }
+                                            },
+                                            legend: {
+                                                display: false
+                                            },
+                                            tooltip: {
+                                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                                padding: 10,
+                                                titleFont: {
+                                                    size: 13,
+                                                    weight: 'bold'
+                                                },
+                                                bodyFont: {
+                                                    size: 12
+                                                },
+                                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                                borderWidth: 1,
+                                                displayColors: false,
+                                                callbacks: {
+                                                    title: function(context) {
+                                                        const date = new Date(context[0].parsed.x);
+                                                        return date.toLocaleString();
+                                                    },
+                                                    label: function(context) {
+                                                        return 'Impressions: ' + context.parsed.y;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            })
+                            .catch(error => {
+                                console.error('Error loading chart data:', error);
+                            });
+                    </script>
                     {% endif %}
 
                     <!-- button to home page -->

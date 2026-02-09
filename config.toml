@@ -1,0 +1,59 @@
+[server]
+host = "0.0.0.0"
+port = 5000
+
+[database]
+string_field_length = 1000
+
+[key_generation]
+length = 10
+valid_characters = ["ascii_lowercase", "digits", "ascii_uppercase"]
+
+[qr_code]
+width = 512
+height = 512
+color_dark = "#000000"
+color_light = "#ffffff"
+correct_level = "H"
+margin = 4
+
+# Dot style: "square", "rounded", "extra-rounded", "classy", "classy-rounded"
+dot_type = "square"
+
+# Corner square style: "none", "square", "dot", "extra-rounded"
+corner_square_type = "square"
+
+# Corner dot style: "none", "square", "dot"
+corner_dot_type = "square"
+
+# Logo/image options (leave empty string to disable)
+logo_image = ""
+logo_margin = 3
+logo_size = 0.3
+
+# Gradient options (leave empty strings to use solid colors)
+# gradient_type: "linear" or "radial" (empty string = no gradient)
+gradient_type = ""
+gradient_color_start = ""
+gradient_color_end = ""
+gradient_rotation = 0
+
+# Background gradient (leave empty strings to use solid color)
+background_gradient_type = ""
+background_gradient_color_start = ""
+background_gradient_color_end = ""
+background_gradient_rotation = 0
+
+[chart]
+type = "line"
+stepped = true
+background_color = "#ffffff"
+grid_color = "#e0e0e0"
+line_color = "#000000"
+point_radius = 0
+
+[logging]
+filename = "logs.log"
+format = "[%(asctime)s] [%(levelname)s] %(message)s"
+date_format = "%B %d, %Y %H:%M:%S"
+level = "DEBUG"

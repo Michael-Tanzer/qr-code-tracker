@@ -6,38 +6,82 @@ QR Code Views Tracker is a simple web tool that allows you to generate a QR code
 
 ## Setup
 
-### Dependencies
+### Prerequisites
 
-- Flask==2.3.2
-- Flask_Migrate==4.0.4
-- flask_sqlalchemy==3.0.3
-- matplotlib==3.7.1
-- SQLAlchemy==2.0.12
-- waitress==2.1.2
+- Python 3.8 or higher
+- [UV](https://github.com/astral-sh/uv) package manager
 
-To install the required dependencies, run the following command:
+### Installation
 
-```
-pip install -r requirements.txt
+1. Install dependencies using UV:
+
+```bash
+uv sync
 ```
 
-### Environment Variables
+This will install all required dependencies from `pyproject.toml`.
 
-The following environment variables must be set to run the application:
+### Configuration
 
-- `DATABASE_URL`: path or url to the database.
-- `FLASK_DEBUG`: whether to debug the app and use a debugger server or to use a production server.
-- `SECRET_KEY`: secret key.
+1. Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` and set the required environment variables:
+
+- `DATABASE_URL`: Path or URL to the database (e.g., `sqlite:///src/main_db.db` for SQLite or `postgresql://user:password@localhost/dbname` for PostgreSQL)
+- `FLASK_DEBUG`: Set to `1` for development (uses Flask debug server) or `0` for production (uses waitress server)
+- `SECRET_KEY`: Secret key for Flask sessions (generate a secure random key for production)
+
+3. Optional: Edit `config.toml` to customize application settings (server host/port, key generation, QR code settings, etc.)
 
 ### Running the Application
 
-To run the application on your local server, execute the following command:
+#### Using the CLI (Recommended)
 
-```
-flask run
+Run the server using the CLI command:
+
+```bash
+uv run qr-tracker run
 ```
 
-Navigate to `localhost:5000` in your web browser to generate a QR code.
+Or with custom options:
+
+```bash
+uv run qr-tracker run --host 127.0.0.1 --port 8080 --debug
+```
+
+#### Database Migrations
+
+Initialize migrations:
+
+```bash
+uv run qr-tracker db init
+```
+
+Create a new migration:
+
+```bash
+uv run qr-tracker db migrate
+```
+
+Apply migrations:
+
+```bash
+uv run qr-tracker db upgrade
+```
+
+#### Alternative: Direct Python Execution
+
+You can also run the server directly:
+
+```bash
+uv run python src/server.py
+```
+
+Navigate to `localhost:5000` (or your configured port) in your web browser to generate a QR code.
 
 ## Usage
 
