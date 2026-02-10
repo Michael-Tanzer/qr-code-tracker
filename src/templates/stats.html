@@ -73,17 +73,6 @@
                                     color: qrConfig.color_dark || "#000000"
                                 };
                                 
-                                // Add gradient if configured
-                                if (qrConfig.gradient_type && qrConfig.gradient_color_start && qrConfig.gradient_color_end) {
-                                    dotsOptions.gradient = {
-                                        type: qrConfig.gradient_type,
-                                        rotation: qrConfig.gradient_rotation || 0,
-                                        colorStops: [
-                                            { offset: 0, color: qrConfig.gradient_color_start },
-                                            { offset: 1, color: qrConfig.gradient_color_end }
-                                        ]
-                                    };
-                                }
                                 
                                 // Build corners configuration
                                 const cornersSquareOptions = {
@@ -96,47 +85,17 @@
                                     color: qrConfig.color_dark || "#000000"
                                 };
                                 
-                                // Add gradient to corners if configured (for dots gradient)
-                                if (qrConfig.gradient_type && qrConfig.gradient_color_start && qrConfig.gradient_color_end) {
-                                    cornersSquareOptions.gradient = {
-                                        type: qrConfig.gradient_type,
-                                        rotation: qrConfig.gradient_rotation || 0,
-                                        colorStops: [
-                                            { offset: 0, color: qrConfig.gradient_color_start },
-                                            { offset: 1, color: qrConfig.gradient_color_end }
-                                        ]
-                                    };
-                                    cornersDotOptions.gradient = {
-                                        type: qrConfig.gradient_type,
-                                        rotation: qrConfig.gradient_rotation || 0,
-                                        colorStops: [
-                                            { offset: 0, color: qrConfig.gradient_color_start },
-                                            { offset: 1, color: qrConfig.gradient_color_end }
-                                        ]
-                                    };
-                                }
-                                
                                 // Build background configuration
                                 const backgroundOptions = {
                                     color: qrConfig.color_light || "#ffffff"
                                 };
                                 
-                                // Add background gradient if configured
-                                if (qrConfig.background_gradient_type && qrConfig.background_gradient_color_start && qrConfig.background_gradient_color_end) {
-                                    backgroundOptions.gradient = {
-                                        type: qrConfig.background_gradient_type,
-                                        rotation: qrConfig.background_gradient_rotation || 0,
-                                        colorStops: [
-                                            { offset: 0, color: qrConfig.background_gradient_color_start },
-                                            { offset: 1, color: qrConfig.background_gradient_color_end }
-                                        ]
-                                    };
-                                }
-                                
                                 // Build QR code configuration object
+                                // Use size if available, otherwise fall back to width (for backward compatibility)
+                                const size = qrConfig.size || qrConfig.width || 512;
                                 const qrCodeConfig = {
-                                    width: qrConfig.width || 512,
-                                    height: qrConfig.height || 512,
+                                    width: size,
+                                    height: size,
                                     type: "canvas",
                                     data: qrCodeUrl,
                                     margin: qrConfig.margin || 4,
@@ -152,13 +111,14 @@
                                 };
                                 
                                 // Add image/logo configuration only if logo is provided
+                                // According to QRCodeStyling docs: image is top-level, imageOptions contains crossOrigin and other options
                                 if (qrConfig.logo_image && typeof qrConfig.logo_image === 'string' && qrConfig.logo_image.trim() !== "") {
+                                    qrCodeConfig.image = qrConfig.logo_image.trim();
                                     qrCodeConfig.imageOptions = {
-                                        image: qrConfig.logo_image,
-                                        margin: qrConfig.logo_margin || 3,
-                                        imageSize: qrConfig.logo_size || 0.3,
+                                        crossOrigin: "anonymous",
                                         hideBackgroundDots: true,
-                                        crossOrigin: "anonymous"
+                                        margin: qrConfig.logo_margin || 3,
+                                        imageSize: qrConfig.logo_size || 0.3
                                     };
                                 }
                                 
@@ -403,18 +363,20 @@
                     </div>
                     {% endif %}
                     
+                    <div class="mb-4">
+                        <h6 class="mb-2">Preview</h6>
+                        <div id="qrPreviewModal" class="d-flex justify-content-center align-items-center" style="min-height: 200px; border: 1px solid #dee2e6; border-radius: 0.25rem; background-color: #f8f9fa;">
+                            <p class="text-muted mb-0">Loading preview...</p>
+                        </div>
+                    </div>
+                    
                     <hr class="my-4">
                     <h5 class="mb-3">QR Code Styling</h5>
                     
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="qr_style_width" class="form-label">Width</label>
-                            <input type="number" class="form-control" id="qr_style_width" name="qr_style_width" value="{{ qr_config.width | default(512) }}" min="100" max="2000">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="qr_style_height" class="form-label">Height</label>
-                            <input type="number" class="form-control" id="qr_style_height" name="qr_style_height" value="{{ qr_config.height | default(512) }}" min="100" max="2000">
-                        </div>
+                    <div class="mb-3">
+                        <label for="qr_style_size" class="form-label">Size</label>
+                        <input type="number" class="form-control" id="qr_style_size" name="qr_style_size" value="{{ qr_config.size | default(qr_config.width | default(512)) }}" min="100" max="2000">
+                        <div class="form-text">QR codes are always square</div>
                     </div>
                     
                     <div class="row mb-3">
@@ -502,55 +464,6 @@
                                 </div>
                             </div>
                             
-                            <hr>
-                            <h6>Gradient Options</h6>
-                            <div class="mb-3">
-                                <label for="qr_style_gradient_type" class="form-label">Gradient Type</label>
-                                <select class="form-select" id="qr_style_gradient_type" name="qr_style_gradient_type">
-                                    <option value="">None (Solid Color)</option>
-                                    <option value="linear" {% if (qr_config.gradient_type | default('')) == 'linear' %}selected{% endif %}>Linear</option>
-                                    <option value="radial" {% if (qr_config.gradient_type | default('')) == 'radial' %}selected{% endif %}>Radial</option>
-                                </select>
-                            </div>
-                            <div class="row mb-3" id="gradientOptionsModal" style="display: none;">
-                                <div class="col-md-4">
-                                    <label for="qr_style_gradient_color_start" class="form-label">Start Color</label>
-                                    <input type="color" class="form-control form-control-color" id="qr_style_gradient_color_start" name="qr_style_gradient_color_start" value="{{ qr_config.gradient_color_start | default('#000000') }}" title="Choose gradient start color">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="qr_style_gradient_color_end" class="form-label">End Color</label>
-                                    <input type="color" class="form-control form-control-color" id="qr_style_gradient_color_end" name="qr_style_gradient_color_end" value="{{ qr_config.gradient_color_end | default('#000000') }}" title="Choose gradient end color">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="qr_style_gradient_rotation" class="form-label">Rotation (degrees)</label>
-                                    <input type="number" class="form-control" id="qr_style_gradient_rotation" name="qr_style_gradient_rotation" value="{{ qr_config.gradient_rotation | default(0) }}" min="0" max="360">
-                                </div>
-                            </div>
-                            
-                            <hr>
-                            <h6>Background Gradient Options</h6>
-                            <div class="mb-3">
-                                <label for="qr_style_background_gradient_type" class="form-label">Background Gradient Type</label>
-                                <select class="form-select" id="qr_style_background_gradient_type" name="qr_style_background_gradient_type">
-                                    <option value="">None (Solid Color)</option>
-                                    <option value="linear" {% if (qr_config.background_gradient_type | default('')) == 'linear' %}selected{% endif %}>Linear</option>
-                                    <option value="radial" {% if (qr_config.background_gradient_type | default('')) == 'radial' %}selected{% endif %}>Radial</option>
-                                </select>
-                            </div>
-                            <div class="row mb-3" id="backgroundGradientOptionsModal" style="display: none;">
-                                <div class="col-md-4">
-                                    <label for="qr_style_background_gradient_color_start" class="form-label">Start Color</label>
-                                    <input type="color" class="form-control form-control-color" id="qr_style_background_gradient_color_start" name="qr_style_background_gradient_color_start" value="{{ qr_config.background_gradient_color_start | default('#ffffff') }}" title="Choose background gradient start color">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="qr_style_background_gradient_color_end" class="form-label">End Color</label>
-                                    <input type="color" class="form-control form-control-color" id="qr_style_background_gradient_color_end" name="qr_style_background_gradient_color_end" value="{{ qr_config.background_gradient_color_end | default('#ffffff') }}" title="Choose background gradient end color">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="qr_style_background_gradient_rotation" class="form-label">Rotation (degrees)</label>
-                                    <input type="number" class="form-control" id="qr_style_background_gradient_rotation" name="qr_style_background_gradient_rotation" value="{{ qr_config.background_gradient_rotation | default(0) }}" min="0" max="360">
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -632,41 +545,203 @@
 </div>
 
 <script>
-// Show/hide gradient options in style modal based on selection
-document.addEventListener('DOMContentLoaded', function() {
-    const gradientTypeSelect = document.getElementById('qr_style_gradient_type');
-    const gradientOptions = document.getElementById('gradientOptionsModal');
-    const backgroundGradientTypeSelect = document.getElementById('qr_style_background_gradient_type');
-    const backgroundGradientOptions = document.getElementById('backgroundGradientOptionsModal');
+// Debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Shared function to build QR code configuration from form values
+function buildQRCodeConfig(formValues, qrCodeUrl) {
+    const errorCorrectionMap = {
+        "L": "L",
+        "M": "M",
+        "Q": "Q",
+        "H": "H"
+    };
+    const errorCorrectionLevel = errorCorrectionMap[formValues.correct_level || "H"] || "H";
     
-    if (gradientTypeSelect && gradientOptions) {
-        gradientTypeSelect.addEventListener('change', function() {
-            if (this.value) {
-                gradientOptions.style.display = 'flex';
-            } else {
-                gradientOptions.style.display = 'none';
-            }
-        });
-        
-        // Initialize visibility on page load
-        if (gradientTypeSelect.value) {
-            gradientOptions.style.display = 'flex';
-        }
+    // Build dots configuration
+    const dotsOptions = {
+        type: formValues.dot_type || "square",
+        color: formValues.color_dark || "#000000"
+    };
+    
+    // Build corners configuration
+    const cornersSquareOptions = {
+        type: formValues.corner_square_type || "square",
+        color: formValues.color_dark || "#000000"
+    };
+    
+    const cornersDotOptions = {
+        type: formValues.corner_dot_type || "square",
+        color: formValues.color_dark || "#000000"
+    };
+    
+    // Build background configuration
+    const backgroundOptions = {
+        color: formValues.color_light || "#ffffff"
+    };
+    
+    
+    // Build QR code configuration object
+    const size = parseInt(formValues.size) || 512;
+    const qrCodeConfig = {
+        width: size,
+        height: size,
+        type: "canvas",
+        data: qrCodeUrl,
+        margin: parseInt(formValues.margin) || 4,
+        qrOptions: {
+            typeNumber: 0,
+            mode: "Byte",
+            errorCorrectionLevel: errorCorrectionLevel
+        },
+        dotsOptions: dotsOptions,
+        cornersSquareOptions: cornersSquareOptions,
+        cornersDotOptions: cornersDotOptions,
+        backgroundOptions: backgroundOptions
+    };
+    
+    // Add image/logo configuration only if logo is provided
+    // According to QRCodeStyling docs: image is top-level, imageOptions contains crossOrigin and other options
+    if (formValues.logo_image && typeof formValues.logo_image === 'string' && formValues.logo_image.trim() !== "") {
+        qrCodeConfig.image = formValues.logo_image.trim();
+        qrCodeConfig.imageOptions = {
+            crossOrigin: "anonymous",
+            hideBackgroundDots: true,
+            margin: parseInt(formValues.logo_margin) || 3,
+            imageSize: parseFloat(formValues.logo_size) || 0.3
+        };
     }
     
-    if (backgroundGradientTypeSelect && backgroundGradientOptions) {
-        backgroundGradientTypeSelect.addEventListener('change', function() {
-            if (this.value) {
-                backgroundGradientOptions.style.display = 'flex';
-            } else {
-                backgroundGradientOptions.style.display = 'none';
-            }
+    return qrCodeConfig;
+}
+
+// Collect form values from modal form
+function collectModalFormValues() {
+    return {
+        size: document.getElementById('qr_style_size')?.value || '512',
+        color_dark: document.getElementById('qr_style_color_dark')?.value || '#000000',
+        color_light: document.getElementById('qr_style_color_light')?.value || '#ffffff',
+        dot_type: document.getElementById('qr_style_dot_type')?.value || 'square',
+        margin: document.getElementById('qr_style_margin')?.value || '4',
+        corner_square_type: document.getElementById('qr_style_corner_square_type')?.value || 'square',
+        corner_dot_type: document.getElementById('qr_style_corner_dot_type')?.value || 'square',
+        correct_level: document.getElementById('qr_style_correct_level')?.value || 'H',
+        logo_image: document.getElementById('qr_style_logo_image')?.value || '',
+        logo_size: document.getElementById('qr_style_logo_size')?.value || '0.3',
+        logo_margin: document.getElementById('qr_style_logo_margin')?.value || '3',
+        gradient_type: document.getElementById('qr_style_gradient_type')?.value || '',
+        gradient_color_start: document.getElementById('qr_style_gradient_color_start')?.value || '#000000',
+        gradient_color_end: document.getElementById('qr_style_gradient_color_end')?.value || '#000000',
+        gradient_rotation: document.getElementById('qr_style_gradient_rotation')?.value || '0',
+        background_gradient_type: document.getElementById('qr_style_background_gradient_type')?.value || '',
+        background_gradient_color_start: document.getElementById('qr_style_background_gradient_color_start')?.value || '#ffffff',
+        background_gradient_color_end: document.getElementById('qr_style_background_gradient_color_end')?.value || '#ffffff',
+        background_gradient_rotation: document.getElementById('qr_style_background_gradient_rotation')?.value || '0'
+    };
+}
+
+// Generate QR code preview for modal
+let modalQRCodeInstance = null;
+
+function generateQRPreviewModal() {
+    // Check if QRCodeStyling is available
+    if (typeof QRCodeStyling === 'undefined') {
+        const previewElement = document.getElementById('qrPreviewModal');
+        if (previewElement) {
+            previewElement.innerHTML = '<p class="text-danger">Error: QR code library not loaded. Please refresh the page.</p>';
+        }
+        return;
+    }
+    
+    const previewElement = document.getElementById('qrPreviewModal');
+    if (!previewElement) {
+        return;
+    }
+    
+    // Get QR code URL from server variable
+    {% if public_qr_url %}
+    const qrCodeUrl = {{ public_qr_url | tojson }};
+    {% else %}
+    const qrCodeUrl = '';
+    {% endif %}
+    
+    if (!qrCodeUrl || qrCodeUrl === '') {
+        previewElement.innerHTML = '<p class="text-danger">Error: QR code URL not available</p>';
+        return;
+    }
+    
+    try {
+        const formValues = collectModalFormValues();
+        
+        // Clear previous QR code instance
+        if (modalQRCodeInstance) {
+            previewElement.innerHTML = '';
+            modalQRCodeInstance = null;
+        }
+        
+        // Build QR code configuration
+        const qrCodeConfig = buildQRCodeConfig(formValues, qrCodeUrl);
+        
+        // Create QR code with styling
+        // QRCodeStyling handles image loading internally, so we can pass URL directly
+        modalQRCodeInstance = new QRCodeStyling(qrCodeConfig);
+        modalQRCodeInstance.append(previewElement);
+    } catch (error) {
+        console.error('Error generating QR code preview:', error);
+        const previewElement = document.getElementById('qrPreviewModal');
+        if (previewElement) {
+            previewElement.innerHTML = '<p class="text-danger">Error generating QR code preview. Please check the browser console.</p>';
+        }
+    }
+}
+
+// Debounced version of generateQRPreviewModal
+const debouncedGenerateQRPreviewModal = debounce(generateQRPreviewModal, 300);
+
+// Add event listeners to all modal form fields for preview updates
+document.addEventListener('DOMContentLoaded', function() {
+    const modalFormFields = [
+        'qr_style_size', 'qr_style_color_dark', 'qr_style_color_light',
+        'qr_style_dot_type', 'qr_style_margin', 'qr_style_corner_square_type', 'qr_style_corner_dot_type',
+        'qr_style_correct_level', 'qr_style_logo_image', 'qr_style_logo_size', 'qr_style_logo_margin'
+    ];
+    
+    modalFormFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', debouncedGenerateQRPreviewModal);
+            field.addEventListener('change', debouncedGenerateQRPreviewModal);
+        }
+    });
+    
+    // Handle modal lifecycle events
+    const styleModal = document.getElementById('styleModal');
+    if (styleModal) {
+        styleModal.addEventListener('shown.bs.modal', function() {
+            // Wait a bit for modal to fully render, then generate preview
+            setTimeout(function() {
+                generateQRPreviewModal();
+            }, 100);
         });
         
-        // Initialize visibility on page load
-        if (backgroundGradientTypeSelect.value) {
-            backgroundGradientOptions.style.display = 'flex';
-        }
+        styleModal.addEventListener('hidden.bs.modal', function() {
+            // Clear preview when modal closes
+            const previewElement = document.getElementById('qrPreviewModal');
+            if (previewElement && modalQRCodeInstance) {
+                previewElement.innerHTML = '<p class="text-muted mb-0">Loading preview...</p>';
+                modalQRCodeInstance = null;
+            }
+        });
     }
 });
 </script>

@@ -202,16 +202,16 @@ def update_style(id: str) -> Union[str, Response]:
     # Extract QR styling options from form (same logic as generate function)
     qr_style_config = {}
     
-    # Basic options
-    if request.form.get("qr_style_width"):
+    # Basic options - use size if provided, otherwise fall back to width/height for backward compatibility
+    if request.form.get("qr_style_size"):
         try:
-            qr_style_config["width"] = int(request.form.get("qr_style_width"))
+            qr_style_config["size"] = int(request.form.get("qr_style_size"))
         except ValueError:
             pass
-    
-    if request.form.get("qr_style_height"):
+    elif request.form.get("qr_style_width"):
         try:
-            qr_style_config["height"] = int(request.form.get("qr_style_height"))
+            size_value = int(request.form.get("qr_style_width"))
+            qr_style_config["size"] = size_value
         except ValueError:
             pass
     
@@ -422,16 +422,16 @@ def generate() -> Union[str, Response]:
     qr_style_config = {}
     default_qr_config = config.get("qr_code", {})
     
-    # Basic options
-    if request.form.get("qr_style_width"):
+    # Basic options - use size if provided, otherwise fall back to width/height for backward compatibility
+    if request.form.get("qr_style_size"):
         try:
-            qr_style_config["width"] = int(request.form.get("qr_style_width"))
+            qr_style_config["size"] = int(request.form.get("qr_style_size"))
         except ValueError:
             pass
-    
-    if request.form.get("qr_style_height"):
+    elif request.form.get("qr_style_width"):
         try:
-            qr_style_config["height"] = int(request.form.get("qr_style_height"))
+            size_value = int(request.form.get("qr_style_width"))
+            qr_style_config["size"] = size_value
         except ValueError:
             pass
     

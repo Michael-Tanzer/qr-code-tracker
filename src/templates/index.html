@@ -35,15 +35,10 @@
                         <hr class="my-4">
                         <h5 class="mb-3">QR Code Styling</h5>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="qr_style_width" class="form-label">Width</label>
-                                <input type="number" class="form-control" id="qr_style_width" name="qr_style_width" value="{{ qr_config.width | default(512) }}" min="100" max="2000">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="qr_style_height" class="form-label">Height</label>
-                                <input type="number" class="form-control" id="qr_style_height" name="qr_style_height" value="{{ qr_config.height | default(512) }}" min="100" max="2000">
-                            </div>
+                        <div class="mb-3">
+                            <label for="qr_style_size" class="form-label">Size</label>
+                            <input type="number" class="form-control" id="qr_style_size" name="qr_style_size" value="{{ qr_config.size | default(qr_config.width | default(512)) }}" min="100" max="2000">
+                            <div class="form-text">QR codes are always square</div>
                         </div>
                         
                         <div class="row mb-3">
@@ -130,56 +125,6 @@
                                         <input type="number" class="form-control" id="qr_style_logo_margin" name="qr_style_logo_margin" value="{{ qr_config.logo_margin | default(3) }}" min="0" max="10">
                                     </div>
                                 </div>
-                                
-                                <hr>
-                                <h6>Gradient Options</h6>
-                                <div class="mb-3">
-                                    <label for="qr_style_gradient_type" class="form-label">Gradient Type</label>
-                                    <select class="form-select" id="qr_style_gradient_type" name="qr_style_gradient_type">
-                                        <option value="">None (Solid Color)</option>
-                                        <option value="linear" {% if (qr_config.gradient_type | default('')) == 'linear' %}selected{% endif %}>Linear</option>
-                                        <option value="radial" {% if (qr_config.gradient_type | default('')) == 'radial' %}selected{% endif %}>Radial</option>
-                                    </select>
-                                </div>
-                                <div class="row mb-3" id="gradientOptions" style="display: none;">
-                                    <div class="col-md-4">
-                                        <label for="qr_style_gradient_color_start" class="form-label">Start Color</label>
-                                        <input type="color" class="form-control form-control-color" id="qr_style_gradient_color_start" name="qr_style_gradient_color_start" value="{{ qr_config.gradient_color_start | default('#000000') }}" title="Choose gradient start color">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="qr_style_gradient_color_end" class="form-label">End Color</label>
-                                        <input type="color" class="form-control form-control-color" id="qr_style_gradient_color_end" name="qr_style_gradient_color_end" value="{{ qr_config.gradient_color_end | default('#000000') }}" title="Choose gradient end color">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="qr_style_gradient_rotation" class="form-label">Rotation (degrees)</label>
-                                        <input type="number" class="form-control" id="qr_style_gradient_rotation" name="qr_style_gradient_rotation" value="{{ qr_config.gradient_rotation | default(0) }}" min="0" max="360">
-                                    </div>
-                                </div>
-                                
-                                <hr>
-                                <h6>Background Gradient Options</h6>
-                                <div class="mb-3">
-                                    <label for="qr_style_background_gradient_type" class="form-label">Background Gradient Type</label>
-                                    <select class="form-select" id="qr_style_background_gradient_type" name="qr_style_background_gradient_type">
-                                        <option value="">None (Solid Color)</option>
-                                        <option value="linear" {% if (qr_config.background_gradient_type | default('')) == 'linear' %}selected{% endif %}>Linear</option>
-                                        <option value="radial" {% if (qr_config.background_gradient_type | default('')) == 'radial' %}selected{% endif %}>Radial</option>
-                                    </select>
-                                </div>
-                                <div class="row mb-3" id="backgroundGradientOptions" style="display: none;">
-                                    <div class="col-md-4">
-                                        <label for="qr_style_background_gradient_color_start" class="form-label">Start Color</label>
-                                        <input type="color" class="form-control form-control-color" id="qr_style_background_gradient_color_start" name="qr_style_background_gradient_color_start" value="{{ qr_config.background_gradient_color_start | default('#ffffff') }}" title="Choose background gradient start color">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="qr_style_background_gradient_color_end" class="form-label">End Color</label>
-                                        <input type="color" class="form-control form-control-color" id="qr_style_background_gradient_color_end" name="qr_style_background_gradient_color_end" value="{{ qr_config.background_gradient_color_end | default('#ffffff') }}" title="Choose background gradient end color">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="qr_style_background_gradient_rotation" class="form-label">Rotation (degrees)</label>
-                                        <input type="number" class="form-control" id="qr_style_background_gradient_rotation" name="qr_style_background_gradient_rotation" value="{{ qr_config.background_gradient_rotation | default(0) }}" min="0" max="360">
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         
@@ -189,34 +134,222 @@
             </div>
         </div>
     </div>
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3">QR Code Preview</h5>
+                    <div id="qrPreview" class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                        <p class="text-muted">Enter a URL above to see a preview of your QR code</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-// Show/hide gradient options based on selection
-document.getElementById('qr_style_gradient_type').addEventListener('change', function() {
-    const gradientOptions = document.getElementById('gradientOptions');
-    if (this.value) {
-        gradientOptions.style.display = 'flex';
-    } else {
-        gradientOptions.style.display = 'none';
-    }
-});
-
-document.getElementById('qr_style_background_gradient_type').addEventListener('change', function() {
-    const backgroundGradientOptions = document.getElementById('backgroundGradientOptions');
-    if (this.value) {
-        backgroundGradientOptions.style.display = 'flex';
-    } else {
-        backgroundGradientOptions.style.display = 'none';
-    }
-});
-
-// Initialize visibility on page load
-if (document.getElementById('qr_style_gradient_type').value) {
-    document.getElementById('gradientOptions').style.display = 'flex';
+// Debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
-if (document.getElementById('qr_style_background_gradient_type').value) {
-    document.getElementById('backgroundGradientOptions').style.display = 'flex';
+
+// Shared function to build QR code configuration from form values
+function buildQRCodeConfig(formValues, qrCodeUrl) {
+    const errorCorrectionMap = {
+        "L": "L",
+        "M": "M",
+        "Q": "Q",
+        "H": "H"
+    };
+    const errorCorrectionLevel = errorCorrectionMap[formValues.correct_level || "H"] || "H";
+    
+    // Build dots configuration
+    const dotsOptions = {
+        type: formValues.dot_type || "square",
+        color: formValues.color_dark || "#000000"
+    };
+    
+    // Build corners configuration
+    const cornersSquareOptions = {
+        type: formValues.corner_square_type || "square",
+        color: formValues.color_dark || "#000000"
+    };
+    
+    const cornersDotOptions = {
+        type: formValues.corner_dot_type || "square",
+        color: formValues.color_dark || "#000000"
+    };
+    
+    // Build background configuration
+    const backgroundOptions = {
+        color: formValues.color_light || "#ffffff"
+    }
+    
+    // Build QR code configuration object
+    const size = parseInt(formValues.size) || 512;
+    const qrCodeConfig = {
+        width: size,
+        height: size,
+        type: "canvas",
+        data: qrCodeUrl,
+        margin: parseInt(formValues.margin) || 4,
+        qrOptions: {
+            typeNumber: 0,
+            mode: "Byte",
+            errorCorrectionLevel: errorCorrectionLevel
+        },
+        dotsOptions: dotsOptions,
+        cornersSquareOptions: cornersSquareOptions,
+        cornersDotOptions: cornersDotOptions,
+        backgroundOptions: backgroundOptions
+    };
+    
+    // Add image/logo configuration only if logo is provided
+    // According to QRCodeStyling docs: image is top-level, imageOptions contains crossOrigin and other options
+    if (formValues.logo_image && typeof formValues.logo_image === 'string' && formValues.logo_image.trim() !== "") {
+        qrCodeConfig.image = formValues.logo_image.trim();
+        qrCodeConfig.imageOptions = {
+            crossOrigin: "anonymous",
+            hideBackgroundDots: true,
+            margin: parseInt(formValues.logo_margin) || 3,
+            imageSize: parseFloat(formValues.logo_size) || 0.3
+        };
+    }
+    
+    return qrCodeConfig;
+}
+
+// Collect form values from homepage form
+function collectHomepageFormValues() {
+    const urlField = document.getElementById('url');
+    const url = urlField ? urlField.value.trim() : '';
+    
+    return {
+        url: url,
+        size: document.getElementById('qr_style_size')?.value || '512',
+        color_dark: document.getElementById('qr_style_color_dark')?.value || '#000000',
+        color_light: document.getElementById('qr_style_color_light')?.value || '#ffffff',
+        dot_type: document.getElementById('qr_style_dot_type')?.value || 'square',
+        margin: document.getElementById('qr_style_margin')?.value || '4',
+        corner_square_type: document.getElementById('qr_style_corner_square_type')?.value || 'square',
+        corner_dot_type: document.getElementById('qr_style_corner_dot_type')?.value || 'square',
+        correct_level: document.getElementById('qr_style_correct_level')?.value || 'H',
+        logo_image: document.getElementById('qr_style_logo_image')?.value || '',
+        logo_size: document.getElementById('qr_style_logo_size')?.value || '0.3',
+        logo_margin: document.getElementById('qr_style_logo_margin')?.value || '3',
+        gradient_type: document.getElementById('qr_style_gradient_type')?.value || '',
+        gradient_color_start: document.getElementById('qr_style_gradient_color_start')?.value || '#000000',
+        gradient_color_end: document.getElementById('qr_style_gradient_color_end')?.value || '#000000',
+        gradient_rotation: document.getElementById('qr_style_gradient_rotation')?.value || '0',
+        background_gradient_type: document.getElementById('qr_style_background_gradient_type')?.value || '',
+        background_gradient_color_start: document.getElementById('qr_style_background_gradient_color_start')?.value || '#ffffff',
+        background_gradient_color_end: document.getElementById('qr_style_background_gradient_color_end')?.value || '#ffffff',
+        background_gradient_rotation: document.getElementById('qr_style_background_gradient_rotation')?.value || '0'
+    };
+}
+
+// Generate QR code preview for homepage
+let homepageQRCodeInstance = null;
+
+function generateQRPreview() {
+    // Check if QRCodeStyling is available
+    if (typeof QRCodeStyling === 'undefined') {
+        const previewElement = document.getElementById('qrPreview');
+        if (previewElement) {
+            previewElement.innerHTML = '<p class="text-danger">Error: QR code library not loaded. Please refresh the page.</p>';
+        }
+        return;
+    }
+    
+    const previewElement = document.getElementById('qrPreview');
+    if (!previewElement) {
+        return;
+    }
+    
+    const formValues = collectHomepageFormValues();
+    const url = formValues.url;
+    
+    // Show placeholder if URL is empty
+    if (!url || url === '') {
+        previewElement.innerHTML = '<p class="text-muted">Enter a URL above to see a preview of your QR code</p>';
+        return;
+    }
+    
+    try {
+        // Normalize URL (add https:// if no protocol)
+        let qrCodeUrl = url;
+        if (qrCodeUrl.indexOf('http://') !== 0 && qrCodeUrl.indexOf('https://') !== 0) {
+            qrCodeUrl = 'https://' + qrCodeUrl;
+        }
+        
+        // Clear previous QR code instance
+        if (homepageQRCodeInstance) {
+            previewElement.innerHTML = '';
+            homepageQRCodeInstance = null;
+        }
+        
+        // Build QR code configuration
+        const qrCodeConfig = buildQRCodeConfig(formValues, qrCodeUrl);
+        
+        // Create QR code with styling
+        // QRCodeStyling handles image loading internally, so we can pass URL directly
+        homepageQRCodeInstance = new QRCodeStyling(qrCodeConfig);
+        homepageQRCodeInstance.append(previewElement);
+    } catch (error) {
+        console.error('Error generating QR code preview:', error);
+        previewElement.innerHTML = '<p class="text-danger">Error generating QR code preview. Please check the browser console.</p>';
+    }
+}
+
+// Debounced version of generateQRPreview
+const debouncedGenerateQRPreview = debounce(generateQRPreview, 300);
+
+
+// Add event listeners to all form fields for preview updates
+const formFields = [
+    'url', 'qr_style_size', 'qr_style_color_dark', 'qr_style_color_light',
+    'qr_style_dot_type', 'qr_style_margin', 'qr_style_corner_square_type', 'qr_style_corner_dot_type',
+    'qr_style_correct_level', 'qr_style_logo_image', 'qr_style_logo_size', 'qr_style_logo_margin'
+];
+
+formFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.addEventListener('input', debouncedGenerateQRPreview);
+        field.addEventListener('change', debouncedGenerateQRPreview);
+    }
+});
+
+// Wait for library to load and generate initial preview
+function waitForLibraryAndPreview(attempts) {
+    attempts = attempts || 0;
+    if (attempts > 50) {
+        console.error('QRCodeStyling library failed to load after 5 seconds');
+        return;
+    }
+    
+    if (typeof QRCodeStyling !== 'undefined') {
+        generateQRPreview();
+    } else {
+        setTimeout(function() { waitForLibraryAndPreview(attempts + 1); }, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        waitForLibraryAndPreview();
+    });
+} else {
+    waitForLibraryAndPreview();
 }
 </script>
 
