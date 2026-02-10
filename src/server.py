@@ -7,7 +7,7 @@ from flask import Flask, request, session
 from flask_migrate import Migrate, init, migrate, upgrade
 
 from src.server_utils.config import get_config
-from src.server_utils.home import home_pages
+from src.server_utils.home import home_pages, public_pages, admin_pages
 
 load_dotenv()
 
@@ -39,9 +39,12 @@ dictConfig(
 )
 
 
-def create_app():
+def create_app(mode="both"):
     """
     Create and configure the Flask application.
+    
+    Args:
+        mode: Server mode - "public" (only redirect endpoint), "admin" (only management endpoints), or "both" (all endpoints, default for backward compatibility)
     
     Returns:
         Flask: Configured Flask application instance
@@ -74,14 +77,21 @@ def create_app():
 
     migrate = Migrate(app, db)
 
-    app.register_blueprint(home_pages)
+    if mode == "public":
+        app.register_blueprint(public_pages)
+    elif mode == "admin":
+        app.register_blueprint(admin_pages)
+    else:
+        app.register_blueprint(admin_pages)
+    
     return app
 
 
 if __name__ == '__main__':
     assert "FLASK_DEBUG" in os.environ
 
-    app = create_app()
+    mode = os.environ.get("SERVER_MODE", "both")
+    app = create_app(mode=mode)
 
     if "MIGRATE_CMD" in os.environ:
         command = os.environ["MIGRATE_CMD"]
@@ -132,8 +142,15 @@ if __name__ == '__main__':
         return response
 
     server_config = config["server"]
+    if mode == "public":
+        port = server_config.get("public_port", 8082)
+    elif mode == "admin":
+        port = server_config.get("admin_port", 6063)
+    else:
+        port = server_config.get("admin_port", 6063)
+    
     if int(os.environ.get("FLASK_DEBUG", "1")):
-        app.run(debug=True, host=server_config["host"])
+        app.run(debug=True, host=server_config["host"], port=port)
     else:
         from waitress import serve
-        serve(app, host=server_config["host"], port=server_config["port"])
+        serve(app, host=server_config["host"], port=port)

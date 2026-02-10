@@ -35,27 +35,33 @@ cp .env.example .env
 
 4. Optional: Edit `config.toml` to customize application settings
 
-5. Build and start the container:
+5. Build and start the containers:
 
 ```bash
 docker-compose up -d
 ```
 
-The application will be available at `http://localhost:5000` (or your server's IP address).
+The application runs two services:
+- **Public service** (port 8082): Handles QR code redirects - accessible from the internet
+- **Admin service** (port 6063): Handles QR code creation and management - should be VPN-only
+
+Both services share the same database and are available at their respective ports.
 
 #### Docker Commands
 
-- View logs: `docker-compose logs -f`
-- Stop the container: `docker-compose down`
-- Restart the container: `docker-compose restart`
+- View logs for both services: `docker-compose logs -f`
+- View logs for a specific service: `docker-compose logs -f qr-tracker-public` or `docker-compose logs -f qr-tracker-admin`
+- Stop all containers: `docker-compose down`
+- Restart all containers: `docker-compose restart`
+- Restart a specific service: `docker-compose restart qr-tracker-public` or `docker-compose restart qr-tracker-admin`
 - Rebuild after code changes: `docker-compose up -d --build`
 
 #### Database Migrations with Docker
 
-Run migrations inside the container:
+Run migrations inside either container (both share the same database):
 
 ```bash
-docker-compose exec qr-tracker uv run qr-tracker db upgrade
+docker-compose exec qr-tracker-admin uv run qr-tracker db upgrade
 ```
 
 #### Data Persistence
@@ -96,22 +102,38 @@ cp .env.example .env
 - `FLASK_DEBUG`: Set to `1` for development (uses Flask debug server) or `0` for production (uses waitress server)
 - `SECRET_KEY`: Secret key for Flask sessions (generate a secure random key for production)
 
-3. Optional: Edit `config.toml` to customize application settings (server host/port, key generation, QR code settings, etc.)
+3. Optional: Edit `config.toml` to customize application settings:
+   - `server.public_port`: Port for the public redirect service (default: 8082)
+   - `server.admin_port`: Port for the admin management service (default: 6063)
+   - Other settings: key generation, QR code settings, etc.
 
 ### Running the Application
 
 #### Using the CLI (Recommended)
 
-Run the server using the CLI command:
+Run both services (public and admin) simultaneously:
 
 ```bash
 uv run qr-tracker run
 ```
 
-Or with custom options:
+Or run a specific mode:
 
 ```bash
-uv run qr-tracker run --host 127.0.0.1 --port 8080 --debug
+# Public service only (redirect endpoint)
+uv run qr-tracker run --mode public --port 8082
+
+# Admin service only (management endpoints)
+uv run qr-tracker run --mode admin --port 6063
+
+# Both services (default)
+uv run qr-tracker run --mode both
+```
+
+With custom options:
+
+```bash
+uv run qr-tracker run --host 127.0.0.1 --port 8080 --debug --mode admin
 ```
 
 #### Database Migrations
@@ -142,7 +164,7 @@ You can also run the server directly:
 uv run python src/server.py
 ```
 
-Navigate to `localhost:5000` (or your configured port) in your web browser to generate a QR code.
+Navigate to `localhost:6063` (admin port) in your web browser to generate a QR code. The public redirect endpoint is available on port 8082.
 
 ## Deployment
 
@@ -156,9 +178,28 @@ For production deployment without Docker:
 
 1. Set `FLASK_DEBUG=0` in your `.env` file
 2. Use a production WSGI server (the app uses Waitress when `FLASK_DEBUG=0`)
-3. Consider using a reverse proxy (nginx, Caddy, etc.) in front of the application
-4. Set up proper SSL/TLS certificates
-5. Configure firewall rules to only expose necessary ports
+3. Run both services: `uv run qr-tracker run --mode both`
+4. Consider using a reverse proxy (nginx, Caddy, etc.) in front of the application
+5. Set up proper SSL/TLS certificates
+6. Configure firewall rules to only expose necessary ports
+
+### Firewall and VPN Setup
+
+The application uses a two-port architecture for security:
+
+- **Port 8082 (Public)**: Handles QR code redirects (`/qr/<id>`). This port should be accessible from the internet.
+- **Port 6063 (Admin)**: Handles all management endpoints (create QR codes, view stats, delete entries). This port should be **blocked from public access** and only accessible via VPN (e.g., Tailscale).
+
+#### Tailscale Firewall Rules Example
+
+If using Tailscale, configure firewall rules to:
+- Allow inbound traffic to port 8082 from any source (for QR redirects)
+- Block inbound traffic to port 6063 from non-Tailscale sources
+- Allow inbound traffic to port 6063 only from Tailscale network
+
+This ensures that:
+- QR code redirects work for anyone scanning the code
+- Management functions are only accessible when connected to your VPN
 
 ## Usage
 

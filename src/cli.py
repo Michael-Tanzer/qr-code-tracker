@@ -1,5 +1,6 @@
 import os
 import sys
+import threading
 
 import click
 from dotenv import load_dotenv
@@ -22,7 +23,8 @@ def main():
 @click.option("--host", default=None, help="Host to bind to")
 @click.option("--port", default=None, type=int, help="Port to bind to")
 @click.option("--debug/--no-debug", default=None, help="Enable/disable debug mode")
-def run(host, port, debug):
+@click.option("--mode", type=click.Choice(["public", "admin", "both"], case_sensitive=False), default="both", help="Server mode: public (redirect only), admin (management only), or both (default)")
+def run(host, port, debug, mode):
     """
     Run the QR code tracker server.
     """
@@ -33,22 +35,66 @@ def run(host, port, debug):
         click.echo("Error: DATABASE_URL environment variable must be set", err=True)
         sys.exit(1)
 
-    app = create_app()
     config = get_config()
     server_config = config["server"]
 
     if host is None:
         host = server_config["host"]
-    if port is None:
-        port = server_config["port"]
     if debug is None:
         debug = int(os.environ.get("FLASK_DEBUG", "1")) == 1
 
-    if debug:
-        app.run(debug=True, host=host, port=port)
+    if mode == "both":
+        public_port = server_config.get("public_port", 8082)
+        admin_port = server_config.get("admin_port", 6063)
+        
+        if port is not None:
+            click.echo("Warning: --port option ignored when --mode=both. Using public_port and admin_port from config.", err=True)
+        
+        def run_public():
+            app_public = create_app(mode="public")
+            if debug:
+                app_public.run(debug=False, host=host, port=public_port, use_reloader=False)
+            else:
+                from waitress import serve
+                serve(app_public, host=host, port=public_port)
+        
+        def run_admin():
+            app_admin = create_app(mode="admin")
+            if debug:
+                app_admin.run(debug=debug, host=host, port=admin_port, use_reloader=False)
+            else:
+                from waitress import serve
+                serve(app_admin, host=host, port=admin_port)
+        
+        click.echo(f"Starting public server on port {public_port}...")
+        click.echo(f"Starting admin server on port {admin_port}...")
+        
+        thread_public = threading.Thread(target=run_public, daemon=True)
+        thread_admin = threading.Thread(target=run_admin, daemon=True)
+        
+        thread_public.start()
+        thread_admin.start()
+        
+        try:
+            thread_public.join()
+            thread_admin.join()
+        except KeyboardInterrupt:
+            click.echo("\nShutting down servers...")
+            sys.exit(0)
     else:
-        from waitress import serve
-        serve(app, host=host, port=port)
+        app = create_app(mode=mode)
+        
+        if port is None:
+            if mode == "public":
+                port = server_config.get("public_port", 8082)
+            else:
+                port = server_config.get("admin_port", 6063)
+
+        if debug:
+            app.run(debug=True, host=host, port=port)
+        else:
+            from waitress import serve
+            serve(app, host=host, port=port)
 
 
 @main.group()

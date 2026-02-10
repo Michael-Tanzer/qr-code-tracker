@@ -1,9 +1,34 @@
 version: '3.8'
 
 services:
-  qr-tracker:
+  qr-tracker-public:
     build: .
-    container_name: qr-code-tracker
+    container_name: qr-code-tracker-public
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/main_db.db}
+      - SECRET_KEY=${SECRET_KEY}
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      - SERVER_MODE=public
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config.toml:/app/config.toml:ro
+    env_file:
+      - .env
+    command: uv run qr-tracker run --mode public --port 8082
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8082)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  qr-tracker-admin:
+    build: .
+    container_name: qr-code-tracker-admin
     restart: unless-stopped
     ports:
       - "6063:6063"
@@ -11,12 +36,14 @@ services:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///data/main_db.db}
       - SECRET_KEY=${SECRET_KEY}
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      - SERVER_MODE=admin
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config.toml:/app/config.toml:ro
     env_file:
       - .env
+    command: uv run qr-tracker run --mode admin --port 6063
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 6063)); s.close()"]
       interval: 30s
