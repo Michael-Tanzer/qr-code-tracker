@@ -6,12 +6,73 @@ QR Code Views Tracker is a simple web tool that allows you to generate a QR code
 
 ## Setup
 
-### Prerequisites
+### Docker Deployment (Recommended for Self-Hosting)
+
+#### Prerequisites
+
+- Docker and Docker Compose installed on your server
+
+#### Quick Start
+
+1. Clone the repository and navigate to the project directory:
+
+```bash
+git clone <repository-url>
+cd qr-code-tracker
+```
+
+2. Create a `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+3. Edit `.env` and set the required environment variables:
+
+- `DATABASE_URL`: For SQLite (default): `sqlite:///data/main_db.db`. For PostgreSQL: `postgresql://user:password@postgres:5432/qr_tracker`
+- `FLASK_DEBUG`: Set to `0` for production
+- `SECRET_KEY`: Generate a secure random key (e.g., `openssl rand -hex 32`)
+
+4. Optional: Edit `config.toml` to customize application settings
+
+5. Build and start the container:
+
+```bash
+docker-compose up -d
+```
+
+The application will be available at `http://localhost:5000` (or your server's IP address).
+
+#### Docker Commands
+
+- View logs: `docker-compose logs -f`
+- Stop the container: `docker-compose down`
+- Restart the container: `docker-compose restart`
+- Rebuild after code changes: `docker-compose up -d --build`
+
+#### Database Migrations with Docker
+
+Run migrations inside the container:
+
+```bash
+docker-compose exec qr-tracker uv run qr-tracker db upgrade
+```
+
+#### Data Persistence
+
+The Docker setup uses volumes to persist:
+- Database files: `./data` directory
+- Log files: `./logs` directory
+- Configuration: `config.toml` (mounted as read-only)
+
+### Local Development Setup
+
+#### Prerequisites
 
 - Python 3.8 or higher
 - [UV](https://github.com/astral-sh/uv) package manager
 
-### Installation
+#### Installation
 
 1. Install dependencies using UV:
 
@@ -82,6 +143,22 @@ uv run python src/server.py
 ```
 
 Navigate to `localhost:5000` (or your configured port) in your web browser to generate a QR code.
+
+## Deployment
+
+### Docker (Self-Hosted)
+
+See the [Docker Deployment](#docker-deployment-recommended-for-self-hosting) section above for instructions on deploying with Docker.
+
+### Manual Deployment
+
+For production deployment without Docker:
+
+1. Set `FLASK_DEBUG=0` in your `.env` file
+2. Use a production WSGI server (the app uses Waitress when `FLASK_DEBUG=0`)
+3. Consider using a reverse proxy (nginx, Caddy, etc.) in front of the application
+4. Set up proper SSL/TLS certificates
+5. Configure firewall rules to only expose necessary ports
 
 ## Usage
 

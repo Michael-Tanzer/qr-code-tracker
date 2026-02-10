@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+
+# Database files (will be in volume)
+*.db
+*.db-journal
+
+# Logs
+*.log
+logs/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+LICENSE
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Data directory (will be mounted as volume)
+data/
+
+# OS
+.DS_Store
+Thumbs.db
