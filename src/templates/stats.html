@@ -357,6 +357,12 @@
                     </script>
                     {% endif %}
 
+                    <!-- Action buttons -->
+                    <div class="text-center mb-3" id="action-buttons">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#styleModal">Regenerate QR Code</button>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetModal">Reset Stats</button>
+                    </div>
+
                     <!-- button to home page -->
                     <div class="text-center" id="back-home">
                         <button type="button" class="btn btn-primary" onclick="window.location.href='/'">Make another QR code</button>
@@ -366,5 +372,254 @@
         </div>
     </div>
 </div>
+
+<!-- Style Regeneration Modal -->
+<div class="modal fade" id="styleModal" tabindex="-1" aria-labelledby="styleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="styleModalLabel">Regenerate QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('home.update_style', id=id) }}" method="post">
+                <div class="modal-body">
+                    {% if has_password %}
+                    <div class="mb-3">
+                        <label for="style_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="style_password" name="password" required>
+                        <div class="form-text">Password required to update QR code style</div>
+                    </div>
+                    {% endif %}
+                    
+                    <hr class="my-4">
+                    <h5 class="mb-3">QR Code Styling</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="qr_style_width" class="form-label">Width</label>
+                            <input type="number" class="form-control" id="qr_style_width" name="qr_style_width" value="{{ qr_config.width | default(512) }}" min="100" max="2000">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="qr_style_height" class="form-label">Height</label>
+                            <input type="number" class="form-control" id="qr_style_height" name="qr_style_height" value="{{ qr_config.height | default(512) }}" min="100" max="2000">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="qr_style_color_dark" class="form-label">Dark Color</label>
+                            <input type="color" class="form-control form-control-color" id="qr_style_color_dark" name="qr_style_color_dark" value="{{ qr_config.color_dark | default('#000000') }}" title="Choose dark color">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="qr_style_color_light" class="form-label">Light Color</label>
+                            <input type="color" class="form-control form-control-color" id="qr_style_color_light" name="qr_style_color_light" value="{{ qr_config.color_light | default('#ffffff') }}" title="Choose light color">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="qr_style_dot_type" class="form-label">Dot Style</label>
+                            <select class="form-select" id="qr_style_dot_type" name="qr_style_dot_type">
+                                <option value="square" {% if (qr_config.dot_type | default('square')) == 'square' %}selected{% endif %}>Square</option>
+                                <option value="rounded" {% if (qr_config.dot_type | default('square')) == 'rounded' %}selected{% endif %}>Rounded</option>
+                                <option value="extra-rounded" {% if (qr_config.dot_type | default('square')) == 'extra-rounded' %}selected{% endif %}>Extra Rounded</option>
+                                <option value="classy" {% if (qr_config.dot_type | default('square')) == 'classy' %}selected{% endif %}>Classy</option>
+                                <option value="classy-rounded" {% if (qr_config.dot_type | default('square')) == 'classy-rounded' %}selected{% endif %}>Classy Rounded</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="qr_style_margin" class="form-label">Margin</label>
+                            <input type="number" class="form-control" id="qr_style_margin" name="qr_style_margin" value="{{ qr_config.margin | default(4) }}" min="0" max="20">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#advancedStylingModal" aria-expanded="false" aria-controls="advancedStylingModal">
+                            Advanced Options <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="collapse" id="advancedStylingModal">
+                        <div class="card card-body mb-3">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="qr_style_corner_square_type" class="form-label">Corner Square Style</label>
+                                    <select class="form-select" id="qr_style_corner_square_type" name="qr_style_corner_square_type">
+                                        <option value="none" {% if (qr_config.corner_square_type | default('square')) == 'none' %}selected{% endif %}>None</option>
+                                        <option value="square" {% if (qr_config.corner_square_type | default('square')) == 'square' %}selected{% endif %}>Square</option>
+                                        <option value="dot" {% if (qr_config.corner_square_type | default('square')) == 'dot' %}selected{% endif %}>Dot</option>
+                                        <option value="extra-rounded" {% if (qr_config.corner_square_type | default('square')) == 'extra-rounded' %}selected{% endif %}>Extra Rounded</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="qr_style_corner_dot_type" class="form-label">Corner Dot Style</label>
+                                    <select class="form-select" id="qr_style_corner_dot_type" name="qr_style_corner_dot_type">
+                                        <option value="none" {% if (qr_config.corner_dot_type | default('square')) == 'none' %}selected{% endif %}>None</option>
+                                        <option value="square" {% if (qr_config.corner_dot_type | default('square')) == 'square' %}selected{% endif %}>Square</option>
+                                        <option value="dot" {% if (qr_config.corner_dot_type | default('square')) == 'dot' %}selected{% endif %}>Dot</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="qr_style_correct_level" class="form-label">Error Correction Level</label>
+                                <select class="form-select" id="qr_style_correct_level" name="qr_style_correct_level">
+                                    <option value="L" {% if (qr_config.correct_level | default('H')) == 'L' %}selected{% endif %}>L - Low (~7% recovery)</option>
+                                    <option value="M" {% if (qr_config.correct_level | default('H')) == 'M' %}selected{% endif %}>M - Medium (~15% recovery)</option>
+                                    <option value="Q" {% if (qr_config.correct_level | default('H')) == 'Q' %}selected{% endif %}>Q - Quartile (~25% recovery)</option>
+                                    <option value="H" {% if (qr_config.correct_level | default('H')) == 'H' %}selected{% endif %}>H - High (~30% recovery)</option>
+                                </select>
+                            </div>
+                            
+                            <hr>
+                            <h6>Logo Options</h6>
+                            <div class="mb-3">
+                                <label for="qr_style_logo_image" class="form-label">Logo Image URL</label>
+                                <input type="url" class="form-control" id="qr_style_logo_image" name="qr_style_logo_image" value="{{ qr_config.logo_image | default('') }}" placeholder="https://example.com/logo.png">
+                                <div class="form-text">Optional - URL to an image to embed in the center of the QR code</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="qr_style_logo_size" class="form-label">Logo Size</label>
+                                    <input type="number" class="form-control" id="qr_style_logo_size" name="qr_style_logo_size" value="{{ qr_config.logo_size | default(0.3) }}" step="0.1" min="0.1" max="0.5">
+                                    <div class="form-text">Size relative to QR code (0.1-0.5)</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="qr_style_logo_margin" class="form-label">Logo Margin</label>
+                                    <input type="number" class="form-control" id="qr_style_logo_margin" name="qr_style_logo_margin" value="{{ qr_config.logo_margin | default(3) }}" min="0" max="10">
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            <h6>Gradient Options</h6>
+                            <div class="mb-3">
+                                <label for="qr_style_gradient_type" class="form-label">Gradient Type</label>
+                                <select class="form-select" id="qr_style_gradient_type" name="qr_style_gradient_type">
+                                    <option value="">None (Solid Color)</option>
+                                    <option value="linear" {% if (qr_config.gradient_type | default('')) == 'linear' %}selected{% endif %}>Linear</option>
+                                    <option value="radial" {% if (qr_config.gradient_type | default('')) == 'radial' %}selected{% endif %}>Radial</option>
+                                </select>
+                            </div>
+                            <div class="row mb-3" id="gradientOptionsModal" style="display: none;">
+                                <div class="col-md-4">
+                                    <label for="qr_style_gradient_color_start" class="form-label">Start Color</label>
+                                    <input type="color" class="form-control form-control-color" id="qr_style_gradient_color_start" name="qr_style_gradient_color_start" value="{{ qr_config.gradient_color_start | default('#000000') }}" title="Choose gradient start color">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="qr_style_gradient_color_end" class="form-label">End Color</label>
+                                    <input type="color" class="form-control form-control-color" id="qr_style_gradient_color_end" name="qr_style_gradient_color_end" value="{{ qr_config.gradient_color_end | default('#000000') }}" title="Choose gradient end color">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="qr_style_gradient_rotation" class="form-label">Rotation (degrees)</label>
+                                    <input type="number" class="form-control" id="qr_style_gradient_rotation" name="qr_style_gradient_rotation" value="{{ qr_config.gradient_rotation | default(0) }}" min="0" max="360">
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            <h6>Background Gradient Options</h6>
+                            <div class="mb-3">
+                                <label for="qr_style_background_gradient_type" class="form-label">Background Gradient Type</label>
+                                <select class="form-select" id="qr_style_background_gradient_type" name="qr_style_background_gradient_type">
+                                    <option value="">None (Solid Color)</option>
+                                    <option value="linear" {% if (qr_config.background_gradient_type | default('')) == 'linear' %}selected{% endif %}>Linear</option>
+                                    <option value="radial" {% if (qr_config.background_gradient_type | default('')) == 'radial' %}selected{% endif %}>Radial</option>
+                                </select>
+                            </div>
+                            <div class="row mb-3" id="backgroundGradientOptionsModal" style="display: none;">
+                                <div class="col-md-4">
+                                    <label for="qr_style_background_gradient_color_start" class="form-label">Start Color</label>
+                                    <input type="color" class="form-control form-control-color" id="qr_style_background_gradient_color_start" name="qr_style_background_gradient_color_start" value="{{ qr_config.background_gradient_color_start | default('#ffffff') }}" title="Choose background gradient start color">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="qr_style_background_gradient_color_end" class="form-label">End Color</label>
+                                    <input type="color" class="form-control form-control-color" id="qr_style_background_gradient_color_end" name="qr_style_background_gradient_color_end" value="{{ qr_config.background_gradient_color_end | default('#ffffff') }}" title="Choose background gradient end color">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="qr_style_background_gradient_rotation" class="form-label">Rotation (degrees)</label>
+                                    <input type="number" class="form-control" id="qr_style_background_gradient_rotation" name="qr_style_background_gradient_rotation" value="{{ qr_config.background_gradient_rotation | default(0) }}" min="0" max="360">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update QR Code</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Stats Confirmation Modal -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetModalLabel">Reset Stats</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('home.reset_stats', id=id) }}" method="post">
+                <div class="modal-body">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Warning!</strong> This action will permanently delete all impression data for this QR code. This cannot be undone.
+                    </div>
+                    <p>Are you sure you want to reset the stats? All scan history will be lost.</p>
+                    {% if has_password %}
+                    <div class="mb-3">
+                        <label for="reset_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="reset_password" name="password" required>
+                        <div class="form-text">Password required to reset stats</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reset Stats</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide gradient options in style modal based on selection
+document.addEventListener('DOMContentLoaded', function() {
+    const gradientTypeSelect = document.getElementById('qr_style_gradient_type');
+    const gradientOptions = document.getElementById('gradientOptionsModal');
+    const backgroundGradientTypeSelect = document.getElementById('qr_style_background_gradient_type');
+    const backgroundGradientOptions = document.getElementById('backgroundGradientOptionsModal');
+    
+    if (gradientTypeSelect && gradientOptions) {
+        gradientTypeSelect.addEventListener('change', function() {
+            if (this.value) {
+                gradientOptions.style.display = 'flex';
+            } else {
+                gradientOptions.style.display = 'none';
+            }
+        });
+        
+        // Initialize visibility on page load
+        if (gradientTypeSelect.value) {
+            gradientOptions.style.display = 'flex';
+        }
+    }
+    
+    if (backgroundGradientTypeSelect && backgroundGradientOptions) {
+        backgroundGradientTypeSelect.addEventListener('change', function() {
+            if (this.value) {
+                backgroundGradientOptions.style.display = 'flex';
+            } else {
+                backgroundGradientOptions.style.display = 'none';
+            }
+        });
+        
+        // Initialize visibility on page load
+        if (backgroundGradientTypeSelect.value) {
+            backgroundGradientOptions.style.display = 'flex';
+        }
+    }
+});
+</script>
 
 {% endblock %}

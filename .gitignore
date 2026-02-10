@@ -349,4 +349,4 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm+all,flask,python
 /src/server_utils/migrations_sqlite/
-/src/main_db.db
+main_db.db

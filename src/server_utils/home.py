@@ -113,11 +113,11 @@ def stats(id: str) -> str:
         qr_config = default_qr_config
 
     if counter == 0:
-        return render_template("stats.html", url=url, counter=counter, has_data=False, id=id, qr_config=qr_config)
+        return render_template("stats.html", url=url, counter=counter, has_data=False, id=id, qr_config=qr_config, has_password=has_password)
     elif counter == 1:
-        return render_template("stats.html", url=url, counter=counter, has_data=False, date=datetimes[0], id=id, qr_config=qr_config)
+        return render_template("stats.html", url=url, counter=counter, has_data=False, date=datetimes[0], id=id, qr_config=qr_config, has_password=has_password)
 
-    return render_template("stats.html", url=url, counter=counter, has_data=True, id=id, qr_config=qr_config)
+    return render_template("stats.html", url=url, counter=counter, has_data=True, id=id, qr_config=qr_config, has_password=has_password)
 
 
 @home_pages.route("/qr/<id>/stats/data", methods=["GET"])
@@ -143,6 +143,160 @@ def stats_data(id: str) -> Response:
         "datetimes": datetimes,
         "count": len(datetimes)
     })
+
+
+@home_pages.route("/qr/<id>/stats/update-style", methods=["POST"])
+def update_style(id: str) -> Union[str, Response]:
+    """
+    Update QR code style configuration.
+    
+    Args:
+        id: QR code key identifier
+        
+    Returns:
+        Union[str, Response]: Error page if validation fails, redirect to stats page otherwise
+    """
+    association = Association.query.filter_by(key=id).first()
+    stats = Stats.query.filter_by(key=id).first()
+
+    if association is None or stats is None:
+        return render_template("error.html", id=id)
+
+    has_password = stats.password is not None
+    received_password = request.form.get("password", None)
+    
+    if has_password:
+        if received_password is None:
+            return render_template("password.html", id=id)
+        elif not check_password_hash(stats.password, received_password):
+            return render_template("generic_error.html", error_message="Incorrect password! Please try again.")
+
+    # Extract QR styling options from form (same logic as generate function)
+    qr_style_config = {}
+    
+    # Basic options
+    if request.form.get("qr_style_width"):
+        try:
+            qr_style_config["width"] = int(request.form.get("qr_style_width"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_height"):
+        try:
+            qr_style_config["height"] = int(request.form.get("qr_style_height"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_color_dark"):
+        qr_style_config["color_dark"] = request.form.get("qr_style_color_dark")
+    
+    if request.form.get("qr_style_color_light"):
+        qr_style_config["color_light"] = request.form.get("qr_style_color_light")
+    
+    if request.form.get("qr_style_dot_type"):
+        qr_style_config["dot_type"] = request.form.get("qr_style_dot_type")
+    
+    if request.form.get("qr_style_margin"):
+        try:
+            qr_style_config["margin"] = int(request.form.get("qr_style_margin"))
+        except ValueError:
+            pass
+    
+    # Advanced options
+    if request.form.get("qr_style_corner_square_type"):
+        qr_style_config["corner_square_type"] = request.form.get("qr_style_corner_square_type")
+    
+    if request.form.get("qr_style_corner_dot_type"):
+        qr_style_config["corner_dot_type"] = request.form.get("qr_style_corner_dot_type")
+    
+    if request.form.get("qr_style_logo_image", "").strip():
+        qr_style_config["logo_image"] = request.form.get("qr_style_logo_image").strip()
+    
+    if request.form.get("qr_style_logo_size"):
+        try:
+            qr_style_config["logo_size"] = float(request.form.get("qr_style_logo_size"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_logo_margin"):
+        try:
+            qr_style_config["logo_margin"] = int(request.form.get("qr_style_logo_margin"))
+        except ValueError:
+            pass
+    
+    if request.form.get("qr_style_gradient_type", "").strip():
+        qr_style_config["gradient_type"] = request.form.get("qr_style_gradient_type").strip()
+        if request.form.get("qr_style_gradient_color_start", "").strip():
+            qr_style_config["gradient_color_start"] = request.form.get("qr_style_gradient_color_start").strip()
+        if request.form.get("qr_style_gradient_color_end", "").strip():
+            qr_style_config["gradient_color_end"] = request.form.get("qr_style_gradient_color_end").strip()
+        if request.form.get("qr_style_gradient_rotation"):
+            try:
+                qr_style_config["gradient_rotation"] = int(request.form.get("qr_style_gradient_rotation"))
+            except ValueError:
+                pass
+    
+    if request.form.get("qr_style_background_gradient_type", "").strip():
+        qr_style_config["background_gradient_type"] = request.form.get("qr_style_background_gradient_type").strip()
+        if request.form.get("qr_style_background_gradient_color_start", "").strip():
+            qr_style_config["background_gradient_color_start"] = request.form.get("qr_style_background_gradient_color_start").strip()
+        if request.form.get("qr_style_background_gradient_color_end", "").strip():
+            qr_style_config["background_gradient_color_end"] = request.form.get("qr_style_background_gradient_color_end").strip()
+        if request.form.get("qr_style_background_gradient_rotation"):
+            try:
+                qr_style_config["background_gradient_rotation"] = int(request.form.get("qr_style_background_gradient_rotation"))
+            except ValueError:
+                pass
+    
+    if request.form.get("qr_style_correct_level"):
+        qr_style_config["correct_level"] = request.form.get("qr_style_correct_level")
+
+    # Update association with new style config
+    if qr_style_config:
+        association.qr_style_config = json.dumps(qr_style_config)
+    else:
+        association.qr_style_config = None
+    
+    db.session.commit()
+    logging.info(f"Updated QR style config for key {id}")
+
+    return redirect(url_for("home.stats", id=id))
+
+
+@home_pages.route("/qr/<id>/stats/reset", methods=["POST"])
+def reset_stats(id: str) -> Union[str, Response]:
+    """
+    Reset stats by deleting all impressions.
+    
+    Args:
+        id: QR code key identifier
+        
+    Returns:
+        Union[str, Response]: Error page if validation fails, redirect to stats page otherwise
+    """
+    association = Association.query.filter_by(key=id).first()
+    stats = Stats.query.filter_by(key=id).first()
+
+    if association is None or stats is None:
+        return render_template("error.html", id=id)
+
+    has_password = stats.password is not None
+    received_password = request.form.get("password", None)
+    
+    if has_password:
+        if received_password is None:
+            return render_template("password.html", id=id)
+        elif not check_password_hash(stats.password, received_password):
+            return render_template("generic_error.html", error_message="Incorrect password! Please try again.")
+
+    # Delete all impressions
+    for impression in stats.impressions:
+        db.session.delete(impression)
+    
+    db.session.commit()
+    logging.info(f"Reset stats for key {id}")
+
+    return redirect(url_for("home.stats", id=id))
 
 
 @home_pages.route("/", methods=["POST"])
