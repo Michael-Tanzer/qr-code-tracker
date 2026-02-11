@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import random
 import string
 from datetime import datetime
@@ -107,15 +108,22 @@ def stats(id: str) -> str:
     elif has_password and not check_password_hash(stats.password, received_password):
         return render_template("generic_error.html", error_message="Incorrect password! Refresh the page to try again.")
 
-    # Generate public QR code URL using public port (do this early so it's always available)
-    server_config = config.get("server", {})
-    public_port = server_config.get("public_port", 8082)
-    try:
-        public_host = request.host.split(':')[0]
-    except (AttributeError, ValueError):
-        public_host = request.remote_addr if hasattr(request, 'remote_addr') else 'localhost'
-    scheme = 'https' if request.is_secure else 'http'
-    public_qr_url = f"{scheme}://{public_host}:{public_port}/qr/{id}"
+    # Generate public QR code URL using BASE_URL from env if set, otherwise use request host
+    base_url = os.environ.get("BASE_URL")
+    if base_url:
+        # Remove trailing slash if present
+        base_url = base_url.rstrip('/')
+        public_qr_url = f"{base_url}/qr/{id}"
+    else:
+        # Fall back to original behavior using public port
+        server_config = config.get("server", {})
+        public_port = server_config.get("public_port", 8082)
+        try:
+            public_host = request.host.split(':')[0]
+        except (AttributeError, ValueError):
+            public_host = request.remote_addr if hasattr(request, 'remote_addr') else 'localhost'
+        scheme = 'https' if request.is_secure else 'http'
+        public_qr_url = f"{scheme}://{public_host}:{public_port}/qr/{id}"
 
     url = association.url
     counter = len(stats.impressions)
