@@ -109,11 +109,12 @@ def stats(id: str) -> str:
         return render_template("generic_error.html", error_message="Incorrect password! Refresh the page to try again.")
 
     # Generate public QR code URL using BASE_URL from env if set, otherwise use request host
-    base_url = os.environ.get("BASE_URL")
+    base_url = os.environ.get("BASE_URL", "").strip()
     if base_url:
         # Remove trailing slash if present
         base_url = base_url.rstrip('/')
         public_qr_url = f"{base_url}/qr/{id}"
+        logging.info(f"Using BASE_URL from environment: {public_qr_url}")
     else:
         # Fall back to original behavior using public port
         server_config = config.get("server", {})
@@ -124,6 +125,7 @@ def stats(id: str) -> str:
             public_host = request.remote_addr if hasattr(request, 'remote_addr') else 'localhost'
         scheme = 'https' if request.is_secure else 'http'
         public_qr_url = f"{scheme}://{public_host}:{public_port}/qr/{id}"
+        logging.info(f"Using request host for QR URL: {public_qr_url}")
 
     url = association.url
     counter = len(stats.impressions)
